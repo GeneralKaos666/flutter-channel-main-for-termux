@@ -7,13 +7,18 @@
 # Flutter release (matches [flutter] tag in build.toml)
 export FLUTTER_VERSION="main"
 export FLUTTER_PKG_REL="${FLUTTER_PKG_REL:-1}"
+export FLUTTER_SNAPSHOT="20260926.8db5526"
 export RELEASE_TAG="main"
 # No hosted main-channel release exists yet: refresh after the first main
 # build or pass FLUTTER_DEB_SHA256. Installers fail closed until then.
 export EXPECTED_SHA256="TBD-refresh-after-first-main-build"
-# dpkg versions must start with a digit: branch tags like 'main' ship as '0~main'.
+# dpkg versions must start with a digit; each main snapshot stamps the date+hash
+# (0~main.YYYYMMDD.hash) so installs always move forward, never downgrade.
 _DEB_TAG="${FLUTTER_VERSION}"
-case "${_DEB_TAG}" in [0-9]*) ;; *) _DEB_TAG="0~${_DEB_TAG}" ;; esac
+case "${_DEB_TAG}" in
+  [0-9]*) ;;
+  *) _DEB_TAG="0~${_DEB_TAG}${FLUTTER_SNAPSHOT:+.${FLUTTER_SNAPSHOT}}" ;;
+esac
 export FLUTTER_DEB_NAME="flutter_${_DEB_TAG}-${FLUTTER_PKG_REL}_aarch64.deb"
 
 # Android SDK (mumumusuc/termux-android-sdk apt package, release tag below)

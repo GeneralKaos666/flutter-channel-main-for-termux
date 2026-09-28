@@ -1,0 +1,143 @@
+name: main-refresh
+
+# Tracks Flutter main: probes upstream HEAD nightly, refreshes the
+# build.toml pins + snapshot stamp when main moves, and pushes so the next
+# manual build.yml run packages the latest engine. Refresh only — builds
+# and releases stay manual (see build.yml). There is intentionally no
+# stable-version logic here (the old autorelease.yml was deleted because
+# its stable bump corrupted main-tracking files).
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: main-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Probe upstream main HEAD
+        id: probe
+        run: |
+          set -euo pipefail
+          HEAD=$(git ls-remote https://github.com/flutter/flutter.git HEAD | cut -f1)
+          if [ -z "$HEAD" ]; then
+            echo "empty ls-remote result for upstream HEAD" >&2
+            exit 1
+          fi
+          echo "HEAD=$HEAD" >> "$GITHUB_OUTPUT"
+          echo "upstream main HEAD: $HEAD"
+
+      - name: Compare with pinned revision
+        id: check
+        run: |
+          python3 - "${{ steps.probe.outputs.HEAD }}" <<'PY' >> "$GITHUB_OUTPUT"
+          import sys
+          import tomllib
+          head = sys.argv[1]
+          with open("build.toml", "rb") as f:
+              current = tomllib.load(f)["flutter"].get("framework_revision", "")
+          if head == current:
+              print("should_refresh=false")
+              print(f"already at upstream main ({head[:7]}), nothing to do.")
+          else:
+              print("should_refresh=true")
+              print(f"main moved: {current[:7]} -> {head[:7]}")
+          PY
+
+      - name: Probe release metadata from a shallow main checkout
+        id: meta
+        if: steps.check.outputs.should_refresh == 'true'
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/flutter-probe
+          git clone --depth 1 https://github.com/flutter/flutter.git /tmp/flutter-probe
+          cd /tmp/flutter-probe
+          CLONE_HEAD=$(git rev-parse HEAD)
+          if [ "$CLONE_HEAD" != "${{ steps.probe.outputs.HEAD }}" ]; then
+            echo "clone raced upstream ($CLONE_HEAD != ${{ steps.probe.outputs.HEAD }}); rerun later." >&2
+            exit 1
+          fi
+          flutter --version --machine > /tmp/flutter-version.json
+          python3 - /tmp/flutter-version.json >> "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import re
+          import sys
+          with open(sys.argv[1], encoding="utf-8") as f:
+              m = json.load(f)
+          rev = m.get("frameworkRevision", "")
+          date = m.get("frameworkCommitDate", "")
+          dart = m.get("dartSdkVersion", "")
+          devtools = m.get("devToolsVersion", "")
+          for name, value in (("frameworkRevision", rev), ("frameworkCommitDate", date),
+                              ("dartSdkVersion", dart), ("devToolsVersion", devtools)):
+              if not value:
+                  raise SystemExit(f"flutter --version --machine missing {name}; full JSON:\n{json.dumps(m, indent=2)[:2000]}")
+          if not re.fullmatch(r"[0-9a-f]{40}", rev):
+              raise SystemExit(f"unexpected frameworkRevision: {rev!r}")
+          if not re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}", date):
+              raise SystemExit(f"unexpected frameworkCommitDate format: {date!r}")
+          print(f"NEW_REV={rev}")
+          print(f"NEW_DATE={date}")
+          print(f"NEW_DART={dart}")
+          print(f"NEW_DEVTOOLS={devtools}")
+          PY
+
+      - name: Bump build.toml pins
+        if: steps.check.outputs.should_refresh == 'true'
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          import os
+          p = Path("build.toml")
+          text = p.read_text(encoding="utf-8")
+          for field, value in (
+              ("dart_version", "${{ steps.meta.outputs.NEW_DART }}"),
+              ("framework_revision", "${{ steps.meta.outputs.NEW_REV }}"),
+              ("framework_commit_date", "${{ steps.meta.outputs.NEW_DATE }}"),
+              ("devtools_version", "${{ steps.meta.outputs.NEW_DEVTOOLS }}"),
+          ):
+              text, n = re.subn(rf"(?m)^{field} = '[^']*'", f"{field} = '{value}'", text)
+              if n != 1:
+                  raise SystemExit(f"expected 1 {field} line in build.toml, rewrote {n}")
+          p.write_text(text, encoding="utf-8")
+          PY
+          git diff -- build.toml
+
+      - name: Sync version references and verify
+        if: steps.check.outputs.should_refresh == 'true'
+        run: |
+          set -euo pipefail
+          pip install -q -r requirements.txt
+          python3 scripts/ci/generate_versions.py
+          python3 scripts/ci/check_version_drift.py --fix
+          python3 scripts/ci/check_repo.py
+          git diff --stat
+          git diff --check
+
+      - name: Commit and push refresh
+        if: steps.check.outputs.should_refresh == 'true'
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "pins already current after sync; nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(main): refresh pins to flutter/main@${{ steps.probe.outputs.HEAD }}"
+          git push

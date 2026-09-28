@@ -22,7 +22,7 @@ parse_installer_args "$@"
 trap print_summary EXIT
 # dpkg versions must start with a digit: branch tags like 'main' ship as '0~main'.
 _DEB_TAG="${FLUTTER_VERSION}"
-case "${_DEB_TAG}" in [0-9]*) ;; *) _DEB_TAG="0~${_DEB_TAG}" ;; esac
+case "${_DEB_TAG}" in [0-9]*) ;; *) _DEB_TAG="0~${_DEB_TAG}${FLUTTER_SNAPSHOT:+.${FLUTTER_SNAPSHOT}}" ;; esac
 FLUTTER_DEB_NAME="${FLUTTER_DEB_NAME:-flutter_${_DEB_TAG}-${FLUTTER_PKG_REL:-1}_aarch64.deb}"
 FLUTTER_DEB_URL="https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/${RELEASE_TAG}/${FLUTTER_DEB_NAME}"
 

@@ -153,6 +153,12 @@ def load_build_config(root_path: Path | None = None) -> dict[str, str]:
     # branch tags like 'main' ship as '0~main-1'). Kept inline: this script
     # runs with scripts/ci on sys.path, where `import utils` fails.
     deb_tag = str(tag) if str(tag)[:1].isdigit() else f"0~{tag}"
+    # Mirror utils.snapshot_stamp so each main refresh renames the asset and
+    # dpkg/apt can never see a new snapshot as a downgrade.
+    stamp_day = framework_commit_date.split(" ")[0].replace("-", "") if framework_commit_date else ""
+    snapshot = f"{stamp_day}.{str(framework_revision)[:7]}" if stamp_day and framework_revision else ""
+    if snapshot and not str(tag)[:1].isdigit():
+        deb_tag = f"{deb_tag}.{snapshot}"
 
     if not tag:
         fail("build.toml [flutter] missing 'tag'")

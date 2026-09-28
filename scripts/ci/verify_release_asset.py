@@ -277,6 +277,12 @@ def main():
     default_asset = None
     if expected_tag:
         deb_tag = str(expected_tag) if str(expected_tag)[:1].isdigit() else f"0~{expected_tag}"
+        fw_date = str(flutter_cfg.get("framework_commit_date", "") or "")
+        fw_rev = str(flutter_cfg.get("framework_revision", "") or "")
+        stamp_day = fw_date.split(" ")[0].replace("-", "") if fw_date else ""
+        snapshot = f"{stamp_day}.{fw_rev[:7]}" if stamp_day and fw_rev else ""
+        if snapshot and not str(expected_tag)[:1].isdigit():
+            deb_tag = f"{deb_tag}.{snapshot}"
         expected_package_version = f"{deb_tag}-{pkg_rel}" if pkg_rel else str(deb_tag)
         default_asset = f"flutter_{expected_package_version}_aarch64.deb"
     expected_asset = flutter_cfg.get("asset_name") or default_asset

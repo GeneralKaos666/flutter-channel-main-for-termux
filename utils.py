@@ -24,16 +24,30 @@ def termux_arch(arch: str):
     raise ValueError(f'unknown arch: "{arch}"')
 
 
-def deb_version(tag: str, pkg_rel: str) -> str:
+def snapshot_stamp(commit_date: str, revision: str) -> str:
+    """Monotonic snapshot stamp 'YYYYMMDD.shorthash' from build.toml pins.
+
+    Every main refresh moves the date forward, so each snapshot deb
+    version-sorts strictly above the previous one and dpkg/apt can never
+    see a new build as a downgrade.
+    """
+    day = re.split(r"[ T]", str(commit_date).strip(), 1)[0].replace("-", "")
+    return f"{day}.{str(revision).strip()[:7]}"
+
+
+def deb_version(tag: str, pkg_rel: str, snapshot: str = "") -> str:
     """Debian-policy package version for a Flutter tag.
 
     dpkg requires the version to start with a digit. Semver tags pass
     through as '{tag}-{rel}'; branch names such as 'main' get a '0~'
-    prefix ('0~main-1') so the control file parses and the snapshot
-    sorts below future stable releases.
+    prefix with the snapshot stamp ('0~main.20260926.8db5526-1') so the
+    control file parses and every refresh sorts as a strict upgrade.
     """
-    tag, rel = str(tag), str(pkg_rel or "").strip()
-    base = tag if tag[:1].isdigit() else f"0~{tag}"
+    tag, rel, snap = str(tag), str(pkg_rel or "").strip(), str(snapshot or "").strip()
+    if tag[:1].isdigit():
+        base = tag
+    else:
+        base = f"0~{tag}" + (f".{snap}" if snap else "")
     return f"{base}-{rel}" if rel else base
 
 

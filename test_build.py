@@ -81,7 +81,7 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(self.instance.mode, runtime or ["debug"])
 
     def test_output_uses_package_version_suffix(self):
-        expected_version = self.instance.package_version
+        expected_version = self.instance.package_version  # snapshot-pinned via utils.deb_version
         output_name = Path(self.instance.output("arm64")).name
         self.assertEqual(output_name, f"flutter_{expected_version}_aarch64.deb")
 
@@ -295,7 +295,11 @@ class PackageManifestTest(unittest.TestCase):
         flutter = self.cfg["flutter"]
         package_cfg = self.cfg.get("package", {})
         pkg_rel = str(package_cfg.get("pkg_rel") or "").strip()
-        package_version = utils.deb_version(flutter["tag"], package_cfg.get("pkg_rel"))
+        package_version = utils.deb_version(
+            flutter["tag"],
+            package_cfg.get("pkg_rel"),
+            utils.snapshot_stamp(flutter.get("framework_commit_date", ""), flutter.get("framework_revision", "")),
+        )
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp, "flutter")

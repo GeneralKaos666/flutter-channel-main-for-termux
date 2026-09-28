@@ -78,10 +78,11 @@ class Build:
         # TODO: check parameters
         self.tag = tag
         self.pkg_rel = pkg_rel
-        self.package_version = utils.deb_version(self.tag, self.pkg_rel)
         self.dart_version = cfg["flutter"].get("dart_version") or ""
         self.framework_revision = cfg["flutter"].get("framework_revision") or ""
         self.framework_commit_date = cfg["flutter"].get("framework_commit_date") or ""
+        self.snapshot = utils.snapshot_stamp(self.framework_commit_date, self.framework_revision)
+        self.package_version = utils.deb_version(self.tag, self.pkg_rel, self.snapshot)
         self.devtools_version = cfg["flutter"].get("devtools_version") or ""
         self.ndk_version = cfg["ndk"].get("version") or ""
         self.compile_sdk = cfg["android"].get("compile_sdk")

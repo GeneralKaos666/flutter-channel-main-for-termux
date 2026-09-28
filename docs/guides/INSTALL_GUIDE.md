@@ -1,6 +1,6 @@
 # Termux Flutter main Installation Guide
 
-This guide covers `flutter_0~main-1_aarch64.deb`, targeting the following on ARM64 Termux:
+This guide covers `flutter_0~main.20260926.8db5526-1_aarch64.deb`, targeting the following on ARM64 Termux:
 
 - `flutter doctor -v`
 - `flutter create`
@@ -48,13 +48,13 @@ pkg install -y x11-repo git wget curl unzip openjdk-21 aapt2 android-tools cmake
 cd ~
 # NOTE (tracking-main): no hosted main-channel release exists yet. Build the
 # deb yourself (see BUILD_GUIDE.md) and adb push it, e.g.:
-# adb push flutter_0~main-1_aarch64.deb /data/local/tmp/
-wget https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/main/flutter_0~main-1_aarch64.deb
-sha256sum flutter_0~main-1_aarch64.deb
+# adb push flutter_0~main.20260926.8db5526-1_aarch64.deb /data/local/tmp/
+wget https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/main/flutter_0~main.20260926.8db5526-1_aarch64.deb
+sha256sum flutter_0~main.20260926.8db5526-1_aarch64.deb
 # No published hash to confirm against yet; the installer fails closed until
 # EXPECTED_SHA256 is refreshed after the first main build.
 
-dpkg -i flutter_0~main-1_aarch64.deb
+dpkg -i flutter_0~main.20260926.8db5526-1_aarch64.deb
 apt --fix-broken install -y
 
 # Required: dpkg only installs files; this step patches the Termux runtime.
