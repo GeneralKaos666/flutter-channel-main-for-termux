@@ -273,3 +273,29 @@ jobs:
           overwrite_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: prerelease tag
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        id: pretag
+        run: |
+          echo "TAG=main-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: release (manual prerelease)
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.pretag.outputs.TAG }}
+          target_commitish: ${{ github.sha }}
+          name: Flutter main pre-release ${{ steps.pretag.outputs.TAG }}
+          body: ${{ steps.commitmsg.outputs.BODY }}
+          prerelease: true
+          files: |
+            ${{ steps.artifact.outputs.deb }}
+            ${{ steps.artifact.outputs.deb }}.sha256
+            ${{ steps.artifact.outputs.deb }}.size.txt
+            inventory.txt
+            build_metadata.json
+            build_evidence.json
+          overwrite_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
