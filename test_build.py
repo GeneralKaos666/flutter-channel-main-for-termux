@@ -297,7 +297,9 @@ class PackageManifestTest(unittest.TestCase):
         package_version = utils.deb_version(
             flutter["tag"],
             package_cfg.get("pkg_rel"),
-            utils.snapshot_stamp(flutter.get("framework_commit_date", ""), flutter.get("framework_revision", "")),
+            utils.snapshot_stamp(
+                flutter.get("framework_commit_date", ""), flutter.get("framework_revision", "")
+            ),
         )
 
         with tempfile.TemporaryDirectory() as tmp:
