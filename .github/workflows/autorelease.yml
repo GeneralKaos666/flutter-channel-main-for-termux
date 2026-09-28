@@ -1,9 +1,13 @@
 name: autorelease
 
-on:
-  schedule:
-    - cron: '0 8 * * *'
-  workflow_dispatch:
+# DISABLED for prerelease-flutter-for-termux (tracks Flutter main, not stable).
+# The stable-detection bump below seds OLD_TAG='main' across 17 files and
+# corrupts them (e.g. 'maintainers' -> '<stable>tainers'). Re-enable only with
+# a semver guard that exits when the current tag is not X.Y.Z.
+# on:
+#   schedule:
+#     - cron: '0 8 * * *'
+#   workflow_dispatch:
 
 permissions:
   contents: write

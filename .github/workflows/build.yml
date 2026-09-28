@@ -7,10 +7,6 @@ on:
         description: 'Disable sccache (cache-poison escape hatch)'
         required: false
         default: 'false'
-  workflow_run:
-    workflows: ['CI']
-    types: [completed]
-    branches: [main]
 
 concurrency:
   group: build-hosted
@@ -22,9 +18,7 @@ permissions:
 jobs:
   Ubuntu:
     runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch'
     timeout-minutes: 360
 
     steps:
