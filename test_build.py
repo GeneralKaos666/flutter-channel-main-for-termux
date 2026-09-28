@@ -2,7 +2,7 @@
 
 All Flutter/Dart/NDK/Android expectations are derived from ``build.toml`` at
 test time, so these tests survive a version bump without edits. On a Flutter
-release bump (nightly ``autorelease.yml`` rewrites ``build.toml`` and syncs the
+release bump (a ``build.toml`` bump that syncs the
 repo), the flutter-version-dependent tests below self-adjust; the patch/hunk
 contract tests are intentionally tag-agnostic and must keep passing. If a
 patch contract intentionally changes, update the assertion deliberately rather

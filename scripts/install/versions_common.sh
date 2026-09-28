@@ -1,9 +1,8 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # scripts/install/versions_common.sh
 # Single source of truth for the release/toolchain versions used by the on-device
-# Termux installers. check_repo.py asserts these agree with build.toml, and the
-# autorelease workflow bumps them in lockstep, so keep every value here in sync
-# with build.toml when cutting a release.
+# Termux installers. check_repo.py asserts these agree with build.toml, so keep
+# every value here in sync with build.toml when cutting a release.
 
 # Flutter release (matches [flutter] tag in build.toml)
 export FLUTTER_VERSION="main"

@@ -195,12 +195,10 @@ troubleshooting.
 
 ## CI/CD
 
-Releases are built and published automatically by the GitHub-hosted `Build`
-workflow (`build.yml`) on `ubuntu-latest` after `CI` passes on `main`; a
+Releases are built and published as prereleases by manually dispatching the
+GitHub-hosted `Build` workflow (`build.yml`) on `ubuntu-latest`; a
 self-hosted evidence-tracked fallback (`build-deb.yml`) and an ADB device
-smoke gate (`device-smoke.yml`) support manual runs. Nightly `autorelease.yml`
-detects new Flutter stable versions, bumps `build.toml`, and rewrites version
-references.
+smoke gate (`device-smoke.yml`) support manual runs.
 See [CI/CD and device lab](docs/CI_CD.md).
 
 ## Documentation

@@ -17,8 +17,9 @@ stable: `build.toml [flutter] tag` is `main`, so the produced deb is
   hand-sync the `CANONICAL_*` markers in `post_install.sh` and the `EXP_*`
   markers in `flutter_termux_doctor.sh` (the autofix does not cover them),
   then run the full lightweight verification from `AGENTS.md`.
-- `autorelease.yml` and the `build.yml` publish step are guarded to
-  `refs/heads/main` (stable) and never publish from this branch.
+- The `build.yml` publish step runs only on manual dispatch and publishes
+  from `refs/heads/main` as a prerelease; there is no automatic release
+  bot on this repo.
 - Full pipeline still runs on a build host via `python3 build.py`
   (`sysroot` then `configure --arch=arm64` / `build` / `debuild` per
   mode). It cannot run on-device (no `gclient` / NDK here).

@@ -75,15 +75,14 @@ git diff --check
 
 `ci.yml` runs on PRs, pushes to `main`, and manual dispatch (compile + pytest + shellcheck + actionlint + build.toml schema + version-drift + repo-contract + whitespace). `validate.yml` is path-filtered (patches/build.py/build.toml/test_build.py/utils.py/stubs/requirements) and checks the `pytest` command contract plus that `engine.patch` applies to the configured tag via a shallow clone. Actual builds:
 
-- `build.yml` — GitHub-hosted full `.deb` build (uses the NDK that ships on hosted runners via `ANDROID_NDK` env); auto-triggers on `CI` success on `main` (or manual dispatch) and publishes a release with the deb. This is the sole build path.
+- `build.yml` — GitHub-hosted full `.deb` build on manual dispatch only (uses the NDK that ships on hosted runners via `ANDROID_NDK` env); publishes a prerelease with the deb. This is the sole build path.
 - `build-deb.yml` — self-hosted fallback full `.deb` build + artifact/evidence collection (feeds `device-smoke.yml`) for maintainers without hosted-runner time budget.
 - `device-smoke.yml` — manual Windows+ADB: verifies candidate deb SHA256/commit binding, runs Termux smoke, optionally promotes the release.
-- `autorelease.yml` — nightly: detects latest Flutter stable, bumps `build.toml`, `sed`s the same version strings across docs (incl. this file) and installers, then pushes.
 - `release-check.yml` — on PRs and `release` events: verifies release asset metadata via `scripts/ci/verify_release_asset.py`.
 
 ## Gotchas
 
-1. **Version drift is enforced.** `scripts/ci/check_version_drift.py` and `check_repo.py` scan AGENTS.md, guides, installers, and post_install.sh — every version string / `flutter_main-1_aarch64.deb` / patch path must match `build.toml [flutter] tag` or CI fails. `autorelease.yml` rewrites these files automatically on a bump (guarded to stable `main` only; it never touches the `tracking-main` branch), so don't fight the sed format. Use `check_version_drift.py --fix` to auto-rewrite from `build.toml`.
+1. **Version drift is enforced.** `scripts/ci/check_version_drift.py` and `check_repo.py` scan AGENTS.md, guides, installers, and post_install.sh — every version string / `flutter_main-1_aarch64.deb` / patch path must match `build.toml [flutter] tag` or CI fails. Use `check_version_drift.py --fix` to auto-rewrite from `build.toml`.
 2. **Only ARM64 works** for APK gen_snapshot. `arm` fails (32-bit BoringSSL shift overflow), `x64` fails (sysroot mismatch). Packaging is ARM64-only.
 3. **`utils.__MODE__ = ('release', 'debug', 'profile')`** — release first. `Output.any` picks the first existing `flutter/engine/src/out/linux_*_*` dir; it drives which dart-sdk snapshots get packaged. `debuild` asserts at least one output dir exists — build before you package.
 4. **`package.yaml` variables resolve with `safe_eval()`** (package.py) using constrained globals (`root`, `arch`, `output`, `version`, substitution defines). It allowlists literals, names, attribute access, and f-strings — keep template expressions constrained. `$version` is the engine revision from `bin/internal/engine.version`. Don't drop resource keys (`flutter`, `dart_sdk`, `artifacts`, `flutter_linux_gtk_*`, `flutter_patched_sdk*`, `executable`, `profile`, `stamps`, `manifest`) — `check_repo.py` asserts them.

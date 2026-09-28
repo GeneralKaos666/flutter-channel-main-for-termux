@@ -39,7 +39,7 @@ References:
 | Workflow | File | Runner | Trigger | Purpose |
 |----------|------|--------|---------|---------|
 | CI | `.github/workflows/ci.yml` | `ubuntu-latest` | PR, push to `main`, manual | Python/shell/PowerShell syntax, package/docs/workflow sanity, whitespace checks |
-| Build | `.github/workflows/build.yml` | `ubuntu-latest` | `workflow_dispatch`, or `CI` success on `main` | Full `build.py` pipeline on GitHub-hosted runner, `.deb` packaging, auto-publish release |
+| Build | `.github/workflows/build.yml` | `ubuntu-latest` | `workflow_dispatch` (manual only) | Full `build.py` pipeline on GitHub-hosted runner, `.deb` packaging, prerelease publish |
 | Build deb (self-hosted) | `.github/workflows/build-deb.yml` | self-hosted Linux/WSL | manual | Full `build.py` pipeline, `.deb` packaging, optional release publishing (fallback) |
 | Device smoke | `.github/workflows/device-smoke.yml` | self-hosted Windows + ADB tablet | manual | Install deb in Termux, run `post_install.sh`, `flutter doctor`, create/build APK/Linux smoke |
 | Release check | `.github/workflows/release-check.yml` | `ubuntu-latest` | release publish/edit, manual | Verify release asset name, size, and SHA256 digest |
@@ -69,8 +69,8 @@ normal CI job:
 Therefore:
 
 - **PR CI must stay lightweight** and never touch self-hosted device hardware.
-- **The full build is the `ubuntu-latest` `Build` workflow**, auto-triggered on
-  `CI` success on `main` or manual dispatch.
+- **The full build is the `ubuntu-latest` `Build` workflow**, manual dispatch
+  only.
 - **Device smoke is a manual self-hosted gate** run by a maintainer.
 
 ## PR / push CI
@@ -138,16 +138,16 @@ then runs the same patched pipeline (see above) before uploading:
 
 ## Release policy
 
-Merging to `main` **does** publish a GitHub Release through the auto-triggered
-`Build` workflow: after `CI` passes, a multi-hour engine build runs on
-`ubuntu-latest` and the resulting `.deb` is published under the Flutter
-version tag. This is the intended automation for this public repo.
+Merging to `main` does **not** publish by itself. A maintainer manually
+dispatches the `Build` workflow, which runs the multi-hour engine build on
+`ubuntu-latest` and publishes the resulting `.deb` as a prerelease under the
+Flutter version tag.
 
 The release flow:
 
 1. Merge only after PR CI passes.
-2. **Build** auto-runs on `CI` success (or trigger it manually via
-   `workflow_dispatch` on the chosen commit/tag).
+2. **Build**: trigger it manually via `workflow_dispatch` on the chosen
+   commit/tag.
 3. Run device smoke against the produced or published `.deb`.
 4. Let **Release check** verify the release asset metadata after publish/edit.
 
