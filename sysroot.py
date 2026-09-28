@@ -78,6 +78,18 @@ async def _download_packages(out, arch, *src):
             m['sha256_download'] = d['sha256']
             m['size_download'] = d['size']
             m['local_path'] = str(d['path'])
+            expected_sha = (m.get('sha256') or '').strip().lower()
+            if expected_sha:
+                if d['sha256'].lower() != expected_sha:
+                    raise RuntimeError(f"sha256 mismatch for {m['name']}: expected {expected_sha}, got {d['sha256']}")
+            else:
+                m['sha256'] = d['sha256']
+            try:
+                expected_size = int(m.get('size') or 0)
+            except (TypeError, ValueError):
+                expected_size = 0
+            if expected_size and d['size'] != expected_size:
+                raise RuntimeError(f"size mismatch for {m['name']}: expected {expected_size}, got {d['size']}")
             # Prefer server-advertised size/sha when present, else download-observed
             m.setdefault('size', d['size'])
             if not m.get('sha256'):

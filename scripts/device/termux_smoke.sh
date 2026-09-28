@@ -145,12 +145,9 @@ EXPECTED_ARCH=$(dpkg-deb -f "$DEB" Architecture 2>/dev/null || echo "aarch64")
 echo "Expected candidate package metadata: Name=$EXPECTED_PACKAGE, Version=$EXPECTED_VERSION, Arch=$EXPECTED_ARCH"
 
 if command -v su >/dev/null 2>&1; then
-    su -c "chmod -R 777 '$PREFIX/opt/flutter' '$PREFIX/share/flutter' 2>/dev/null || true"
     su -c "rm -rf '$PREFIX/opt/flutter' '$PREFIX/share/flutter' 2>/dev/null || true"
 fi
 chmod -R u+rwx "$PREFIX/opt/flutter" "$PREFIX/share/flutter" 2>/dev/null || true
-chmod -R 777 "$PREFIX/opt/flutter" "$PREFIX/share/flutter" 2>/dev/null || true
-find "$PREFIX/opt/flutter" "$PREFIX/share/flutter" -exec chmod 777 {} + 2>/dev/null || true
 echo "Updating apt package index..."
 apt-get update -y || true
 

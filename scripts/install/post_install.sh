@@ -643,7 +643,7 @@ if [ ! -s "$FLUTTER_ROOT/bin/cache/artifacts/gradle_wrapper/gradle/wrapper/gradl
 		cd "${TMPDIR:-$PREFIX/tmp}"
 		(
 			set +e
-			curl -s -L "https://storage.googleapis.com/$WRAPPER_REL_PATH" | tar -xz -C "$FLUTTER_ROOT/bin/cache/artifacts/gradle_wrapper" 2>/dev/null
+			curl -fsSL "https://storage.googleapis.com/$WRAPPER_REL_PATH" | tar -xz -C "$FLUTTER_ROOT/bin/cache/artifacts/gradle_wrapper" 2>/dev/null
 		) || true
 		rm -f "$FLUTTER_ROOT/bin/cache/artifacts/gradle_wrapper/gradle/wrapper/gradle-wrapper.properties" 2>/dev/null || true
 		rm -f "$FLUTTER_ROOT/bin/cache/artifacts/gradle_wrapper/NOTICE" 2>/dev/null || true
@@ -669,7 +669,7 @@ if [ ! -d "$FLUTTER_ROOT/bin/cache/artifacts/material_fonts" ] || [ -z "$(ls -A 
 		cd "${TMPDIR:-$PREFIX/tmp}"
 		(
 			set +e
-			curl -s -L "https://storage.googleapis.com/$FONTS_REL_PATH" -o fonts.zip 2>/dev/null && unzip -q -o fonts.zip -d "$FLUTTER_ROOT/bin/cache/artifacts/material_fonts" 2>/dev/null && rm -f fonts.zip
+			curl -fsSL "https://storage.googleapis.com/$FONTS_REL_PATH" -o fonts.zip 2>/dev/null && unzip -q -o fonts.zip -d "$FLUTTER_ROOT/bin/cache/artifacts/material_fonts" 2>/dev/null && rm -f fonts.zip
 		) || true
 	fi
 fi
@@ -903,13 +903,16 @@ if [ ! -f "$SNAPSHOTS_DIR/dds_aot.dart.snapshot" ]; then
 	cd "${TMPDIR:-$PREFIX/tmp}"
 	(
 		set +e
-		curl -L -o dart-sdk.zip "$SNAPSHOTS_URL" >/dev/null 2>&1
+		curl -fsSL -o dart-sdk.zip "$SNAPSHOTS_URL" >/dev/null 2>&1
 	) || true
-	if [ -f dart-sdk.zip ]; then
+	if [ -s dart-sdk.zip ]; then
 		echo "  Extracting snapshots..."
-		unzip -o -j dart-sdk.zip 'dart-sdk/bin/snapshots/*' -d "$SNAPSHOTS_DIR" 2>/dev/null || true
+		if unzip -o -j dart-sdk.zip 'dart-sdk/bin/snapshots/*' -d "$SNAPSHOTS_DIR" 2>/dev/null; then
+			echo "  ✓ Dart SDK snapshots installed"
+		else
+			echo "  ⚠ Snapshot archive corrupt/incomplete, skipping"
+		fi
 		rm -f dart-sdk.zip
-		echo "  ✓ Dart SDK snapshots installed"
 	else
 		echo "  ⚠ Network unavailable, skipping Dart SDK snapshots download"
 	fi
@@ -960,7 +963,7 @@ if [ ! -d "$ANDROID_SDK/platforms/android-$COMPILE_SDK" ]; then
 	if [ -n "$PLATFORM_URL" ]; then
 		(
 			set +e
-			curl -L -o platform-$COMPILE_SDK.zip "$PLATFORM_URL" >/dev/null 2>&1
+			curl -fsSL -o platform-$COMPILE_SDK.zip "$PLATFORM_URL" >/dev/null 2>&1
 		) || true
 		if [ -f platform-$COMPILE_SDK.zip ] && [ -s platform-$COMPILE_SDK.zip ]; then
 			unzip -q platform-$COMPILE_SDK.zip 2>/dev/null || true
@@ -1210,7 +1213,7 @@ echo "[9/13] Installing cmdline-tools..."
 if [ ! -d "$ANDROID_SDK/cmdline-tools/latest" ]; then
 	mkdir -p $ANDROID_SDK/cmdline-tools
 	cd $ANDROID_SDK/cmdline-tools
-	curl -L -o tools.zip 'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
+	curl -fsSL -o tools.zip 'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
 	unzip -q tools.zip
 	mv cmdline-tools latest
 	rm tools.zip
