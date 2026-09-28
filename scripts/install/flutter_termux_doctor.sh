@@ -81,7 +81,7 @@ if [ ! -f "$MANIFEST_PATH" ] && [ -f "$FLUTTER_BASE_DIR/bin/cache/canonical_mani
     MANIFEST_PATH="$FLUTTER_BASE_DIR/bin/cache/canonical_manifest.json"
 fi
 
-EXP_VER="3.47.5"
+EXP_VER="main"
 EXP_REV="6a19cca56475dbfba1478ee68d7bd0c2ef891da1"
 EXP_DART="3.13.4"
 if [ -f "$MANIFEST_PATH" ]; then

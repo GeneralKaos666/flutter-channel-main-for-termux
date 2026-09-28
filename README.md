@@ -13,7 +13,7 @@ installs directly into a Termux `$PREFIX` and enables `flutter run`,
 | Flutter   | 3.47.5 (stable) |
 | Dart      | 3.13.4 |
 | Architecture | aarch64 (ARM64) only |
-| Package   | `flutter_3.47.5-1_aarch64.deb` |
+| Package   | `flutter_main-1_aarch64.deb` |
 
 Release assets include:
 - `flutter_<tag>-<pkg_rel>_aarch64.deb`

@@ -41,7 +41,7 @@ INSTALLER_SCRIPTS = [
     "scripts/test/gh_e2e_test.sh",
 ]
 SEMVER_PATTERN = r"\d+\.\d+\.\d+"
-DEB_NAME_PATTERN = rf"flutter_{SEMVER_PATTERN}(?:-[^/\s`\"']+)?_aarch64\.deb"
+DEB_NAME_PATTERN = rf"flutter_(?:{SEMVER_PATTERN}(?:-[^/\s`\"\']+)?|main(?:-[^/\s`\"\']+)?)_aarch64\.deb"
 
 
 def fail(msg: str) -> None:
@@ -50,7 +50,7 @@ def fail(msg: str) -> None:
 
 def replace_line_value(text: str, key: str, value: str) -> tuple[str, int]:
     return re.subn(
-        rf'(?m)^(\s*{re.escape(key)}\s*=\s*["\']?){SEMVER_PATTERN}(["\']?)',
+        rf'(?m)^(\s*(?:export\s+)?{re.escape(key)}\s*=\s*["\']?){SEMVER_PATTERN}(["\']?)',
         rf'\g<1>{value}\g<2>',
         text,
     )
@@ -62,7 +62,7 @@ def replace_default_var_value(text: str, key: str, value: str) -> tuple[str, int
 
 def replace_line_int_value(text: str, key: str, value: str) -> tuple[str, int]:
     return re.subn(
-        rf'(?m)^(\s*{re.escape(key)}\s*=\s*["\']?)\d+(["\']?)',
+        rf'(?m)^(\s*(?:export\s+)?{re.escape(key)}\s*=\s*["\']?)\d+(["\']?)',
         rf'\g<1>{value}\g<2>',
         text,
     )
@@ -272,6 +272,7 @@ def check_agent_guidance_docs(cfg: dict[str, str], root_path: Path | None = None
 
         # Check adb push deb file references
         adb_deb_matches = re.findall(r"flutter_[0-9.]+_aarch64\.deb", text)
+        adb_deb_matches += re.findall(r"flutter_main(?:-[^/\s`\"']+)?_aarch64\.deb", text)
         for deb in adb_deb_matches:
             if deb != asset_name:
                 fail(f"{rel_path}: Deb filename mismatch: found '{deb}', expected '{asset_name}'")
@@ -312,6 +313,9 @@ def check_guide_docs(cfg: dict[str, str], root_path: Path | None = None) -> None
             found_tag = deb_match.group(1)
             if found_tag != tag:
                 fail(f"{rel_path}: Package deb name version mismatch: found '{deb_match.group(0)}', expected '{asset_name}'")
+        for main_match in re.finditer(r"flutter_main(?:-[^/\s`\"']+)?_aarch64\.deb", text):
+            if main_match.group(0) != asset_name:
+                fail(f"{rel_path}: Package deb name version mismatch: found '{main_match.group(0)}', expected '{asset_name}'")
 
         # Check patch paths across all guides
         for patch_match in re.finditer(r"patches/(\d+\.\d+\.\d+)/", text):
