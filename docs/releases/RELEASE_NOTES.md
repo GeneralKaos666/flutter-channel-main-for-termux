@@ -1,19 +1,19 @@
-# Flutter 3.47.5 for Termux ARM64
+# Flutter main for Termux ARM64
 
-**Flutter 3.47.5 / Dart 3.13.4 for Android-bionic ARM64 hosts.**
+**Flutter main / Dart 3.14.0-271.0.dev for Android-bionic ARM64 hosts.**
 
-This release updates the Termux Flutter SDK package to Flutter 3.47.5. It incorporates all post-v3.44.2 installer hardening, dynamic JAVA_HOME auto-detection, robust PREFIX quoting under `set -euo pipefail`, and refreshed Termux toolchain sysroot packages.
+This release updates the Termux Flutter SDK package to Flutter main. It incorporates all post-v3.44.2 installer hardening, dynamic JAVA_HOME auto-detection, robust PREFIX quoting under `set -euo pipefail`, and refreshed Termux toolchain sysroot packages.
 
 ## Package
 
 | Item | Value |
 |------|-------|
 | Package | `flutter_main-1_aarch64.deb` |
-| Size | 617,009,288 bytes (~588 MiB) |
-| SHA256 | `6994580359002c6e0f6eb074d17a8ab3f9578e480e2aad83aa443474da3c9800` |
-| Flutter | 3.47.5 |
-| Flutter Tools Dart | 3.13.4 |
-| Dart VM | post-install `dartvm` resolves to Dart 3.13.4 (`android_arm64`) |
+| Size | `TBD (refresh on first main build)` |
+| SHA256 | `TBD (refresh on first main build)` |
+| Flutter | main |
+| Flutter Tools Dart | 3.14.0-271.0.dev |
+| Dart VM | post-install `dartvm` resolves to Dart 3.14.0-271.0.dev (`android_arm64`) |
 | Target host | Termux / Android bionic / ARM64 |
 
 ## Install

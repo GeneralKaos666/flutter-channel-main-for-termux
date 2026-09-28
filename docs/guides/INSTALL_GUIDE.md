@@ -1,4 +1,4 @@
-# Termux Flutter 3.47.5 Installation Guide
+# Termux Flutter main Installation Guide
 
 This guide covers `flutter_main-1_aarch64.deb`, targeting the following on ARM64 Termux:
 

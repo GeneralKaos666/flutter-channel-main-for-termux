@@ -2,8 +2,6 @@
 
 This document explains how to build a Flutter deb package that includes Android gen_snapshot from scratch.
 
-## Current Version Status (main channel)
-
 ## Tracking-main branch policy (local-only)
 
 This branch (`tracking-main`) builds the Flutter `main` channel instead of
@@ -28,13 +26,13 @@ stable: `build.toml [flutter] tag` is `main`, so the produced deb is
 | Item | Value |
 |------|----|
 | Flutter tag | `main` |
-| Engine revision | `5a2a6a42cce67f965cf540fcecf616faca624aa1` |
+| Engine revision | `TBD (refresh on first main build)` |
 | Package | `flutter_main-1_aarch64.deb` |
-| Package size | 617,009,288 bytes (about 588 MiB) |
-| SHA256 | `6994580359002c6e0f6eb074d17a8ab3f9578e480e2aad83aa443474da3c9800` |
+| Package size | `TBD (refresh on first main build)` |
+| SHA256 | `TBD (refresh on first main build)` |
 | Device smoke | Samsung SM-X716B / Android 16 / Termux |
 
-3.47.5 introduces three new points that require special attention:
+The notes below (first observed around 3.47.5) require special attention on this branch:
 
 1. **Dart VM/tool split**: The Flutter CLI uses the Termux JIT `dart`, but engine snapshots still need the accompanying `dartvm` / `dartaotruntime`, so the package validator must check all three. The dart SDK is produced by the standard build's `dart_sdk_archive` target.
 2. **Flutter Tools Android host**: On Termux, Dart reports `Platform.operatingSystem == "android"`, so the host artifact lookup must be mapped to Linux ARM64.

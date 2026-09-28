@@ -10,8 +10,8 @@ installs directly into a Termux `$PREFIX` and enables `flutter run`,
 
 | Component | Version |
 |-----------|---------|
-| Flutter   | 3.47.5 (stable) |
-| Dart      | 3.13.4 |
+| Flutter   | main channel |
+| Dart      | 3.14.0-271.0.dev |
 | Architecture | aarch64 (ARM64) only |
 | Package   | `flutter_main-1_aarch64.deb` |
 
