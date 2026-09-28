@@ -73,10 +73,14 @@ def flutter_checkout_matches(root: str, tag: str) -> bool:
 
 # TODO: see bin/internal/update_engine_version.sh
 def engine_version(root: str):
-    root = os.path.join(root, "bin/internal/engine.version")
-
-    with open(root) as f:
-        return f.read()
+    version_file = os.path.join(root, "bin/internal/engine.version")
+    if os.path.isfile(version_file):
+        with open(version_file) as f:
+            return f.read()
+    # bin/internal/engine.version is only checked in on stable/beta release
+    # branches. On main the engine sources ship in-repo, so the engine
+    # revision is the checkout HEAD.
+    return git.Repo(root).git.rev_parse("HEAD").strip()
 
 
 def recordm(func):

@@ -12,6 +12,7 @@ than pinning a version literal.
 import json
 import os
 import re
+import subprocess
 import tempfile
 import tomllib
 import unittest
@@ -301,6 +302,45 @@ class PackageManifestTest(unittest.TestCase):
 
             control = pkg.gen_control()["src"].decode("utf-8")
             self.assertIn(f"Version: {package_version}", control)
+
+
+class EngineVersionTest(unittest.TestCase):
+    def test_reads_pinned_file_when_present(self):
+        import utils
+
+        with tempfile.TemporaryDirectory() as tmp:
+            version_file = Path(tmp, "bin", "internal")
+            version_file.mkdir(parents=True)
+            (version_file / "engine.version").write_text("abc123\n", encoding="utf-8")
+            subprocess.run(["git", "init", "-q", tmp], check=True)
+            self.assertEqual(utils.engine_version(tmp), "abc123\n")
+
+    def test_falls_back_to_checkout_head_on_main(self):
+        import utils
+
+        with tempfile.TemporaryDirectory() as tmp:
+            subprocess.run(["git", "init", "-q", "-b", "main", tmp], check=True)
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    tmp,
+                    "-c",
+                    "user.email=t@t",
+                    "-c",
+                    "user.name=t",
+                    "commit",
+                    "-q",
+                    "--allow-empty",
+                    "-m",
+                    "x",
+                ],
+                check=True,
+            )
+            head = subprocess.run(
+                ["git", "-C", tmp, "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+            ).stdout.strip()
+            self.assertEqual(utils.engine_version(tmp), head)
 
 
 class SafeEvalTest(unittest.TestCase):
