@@ -257,6 +257,7 @@ jobs:
           tag_name: ${{ steps.parser.outputs.TAG }}
           name: ${{ steps.parser.outputs.TITLE }}
           body: ${{ steps.commitmsg.outputs.BODY }}
+          prerelease: true
           files: |
             ${{ steps.artifact.outputs.deb }}
             ${{ steps.artifact.outputs.deb }}.sha256
