@@ -46,9 +46,13 @@ pkg update -y
 pkg install -y x11-repo git wget curl unzip openjdk-21 aapt2 android-tools cmake ninja clang
 
 cd ~
+# NOTE (tracking-main): no hosted main-channel release exists yet. Build the
+# deb yourself (see BUILD_GUIDE.md) and adb push it, e.g.:
+# adb push flutter_main-1_aarch64.deb /data/local/tmp/
 wget https://github.com/GeneralKaos666/flutter-for-termux/releases/download/main/flutter_main-1_aarch64.deb
 sha256sum flutter_main-1_aarch64.deb
-# Confirm the output matches: 6994580359002c6e0f6eb074d17a8ab3f9578e480e2aad83aa443474da3c9800
+# No published hash to confirm against yet; the installer fails closed until
+# EXPECTED_SHA256 is refreshed after the first main build.
 
 dpkg -i flutter_main-1_aarch64.deb
 apt --fix-broken install -y

@@ -77,6 +77,7 @@ def apply_version_autofix(cfg: dict[str, str], root_path: Path | None = None) ->
     tag = cfg["tag"]
     release_tag = cfg["release_tag"]
     asset_name = cfg["asset_name"]
+    channel = cfg.get("channel", "stable")
     changed_files: list[str] = []
     file_list = sorted(set(MARKDOWN_DOCS + GUIDANCE_DOCS + GUIDE_DOCS + INSTALLER_SCRIPTS + [
         "scripts/install/post_install.sh",
@@ -108,6 +109,11 @@ def apply_version_autofix(cfg: dict[str, str], root_path: Path | None = None) ->
         text = replace_default_var_value(text, "RELEASE_TAG", release_tag)[0]
         text = replace_line_value(text, "CANONICAL_FLUTTER_VER", tag)[0]
         text = replace_line_value(text, "EXP_VER", tag)[0]
+        text = re.sub(
+            r'(?m)^(\s*(?:export\s+)?(?:CANONICAL_CHANNEL|EXP_CHANNEL)\s*=\s*["\']?)[^"\'\n]*(["\']?)',
+            rf"\g<1>{channel}\g<2>",
+            text,
+        )
 
         if text != original:
             path.write_text(text, encoding="utf-8")
@@ -159,6 +165,7 @@ def load_build_config(root_path: Path | None = None) -> dict[str, str]:
         "size": str(size) if size else "",
         "pkg_rel": pkg_rel,
         "asset_name": str(asset_name) or (f"flutter_{tag}-{pkg_rel}_aarch64.deb" if pkg_rel else f"flutter_{tag}_aarch64.deb"),
+        "channel": "main" if str(tag) == "main" else "stable",
     }
 
 
@@ -386,6 +393,9 @@ def check_post_install_script(cfg: dict[str, str], root_path: Path | None = None
         fail(f"scripts/install/post_install.sh: CANONICAL_FRAMEWORK_DATE mismatch, expected '{fw_date}'")
     if dev_ver and f'CANONICAL_DEVTOOLS_VER="{dev_ver}"' not in text:
         fail(f"scripts/install/post_install.sh: CANONICAL_DEVTOOLS_VER mismatch, expected '{dev_ver}'")
+    chan = cfg.get("channel", "stable")
+    if f'CANONICAL_CHANNEL="{chan}"' not in text:
+        fail(f"scripts/install/post_install.sh: CANONICAL_CHANNEL mismatch, expected '{chan}'")
 
 
 def check_doctor_script(cfg: dict[str, str], root_path: Path | None = None) -> None:
@@ -400,6 +410,9 @@ def check_doctor_script(cfg: dict[str, str], root_path: Path | None = None) -> N
 
     if tag and f'EXP_VER="{tag}"' not in text:
         fail(f"scripts/install/flutter_termux_doctor.sh: EXP_VER mismatch, expected '{tag}'")
+    chan = cfg.get("channel", "stable")
+    if f'EXP_CHANNEL="{chan}"' not in text:
+        fail(f"scripts/install/flutter_termux_doctor.sh: EXP_CHANNEL mismatch, expected '{chan}'")
     if dart_ver and f'EXP_DART="{dart_ver}"' not in text:
         fail(f"scripts/install/flutter_termux_doctor.sh: EXP_DART mismatch, expected '{dart_ver}'")
     if fw_rev and f'EXP_REV="{fw_rev}"' not in text:

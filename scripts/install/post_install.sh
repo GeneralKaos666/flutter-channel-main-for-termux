@@ -397,18 +397,19 @@ patch_shebang_tool_backend() {
 	sed -i "1s|#!/usr/bin/env bash|#!${PREFIX:-/data/data/com.termux/files/usr}/bin/bash|" "$1"
 }
 
-patch_channel_stable() {
+patch_channel_canonical() {
 	# Flutter derives `channel` from the local git branch (version.dart
 	# getBranchName). On a Termux install that branch is not an official
 	# channel, so flutter.version.json ends up with "[user-branch]" or the
-	# raw branch name instead of "stable". Pin it to stable; the recompiled
-	# flutter_tools.snapshot (step 13) then bakes this in permanently.
-	if grep -F -q "Termux: force stable channel" "$1"; then return 0; fi
+	# raw branch name instead of the canonical one. Pin it to
+	# CANONICAL_CHANNEL; the recompiled flutter_tools.snapshot (step 13)
+	# then bakes this in permanently.
+	if grep -F -q "Termux: pin channel" "$1"; then return 0; fi
 	grep -q "getBranchName(redactUnknownBranches: true)" "$1" || return 1
-	sed -i "s/final String channel = getBranchName(redactUnknownBranches: true);/final String channel = 'stable' \/* Termux: force stable channel *\/;/" "$1"
+	sed -i "s/final String channel = getBranchName(redactUnknownBranches: true);/final String channel = '$CANONICAL_CHANNEL' \/* Termux: pin channel *\/;/" "$1"
 }
 
-register_patch "channel_stable" "$FLUTTER_ROOT/packages/flutter_tools/lib/src/version.dart" patch_channel_stable
+register_patch "channel_canonical" "$FLUTTER_ROOT/packages/flutter_tools/lib/src/version.dart" patch_channel_canonical
 
 register_patch "shebang_flutter" "$FLUTTER_ROOT/bin/flutter" patch_shebang_flutter
 register_patch "shebang_dart" "$FLUTTER_ROOT/bin/dart" patch_shebang_dart
@@ -701,7 +702,7 @@ CANONICAL_FRAMEWORK_DATE="2026-09-26 15:45:14 -0700"
 CANONICAL_ENGINE_REV="$local_eng_ver"
 CANONICAL_DART_VER="3.14.0-271.0.dev"
 CANONICAL_DEVTOOLS_VER="2.61.0-dev.0"
-CANONICAL_CHANNEL="stable"
+CANONICAL_CHANNEL="main"
 CANONICAL_REPO_URL="https://github.com/flutter/flutter.git"
 
 MANIFEST_LOADED=0
@@ -868,7 +869,7 @@ EOF
 
 # Strict validation
 if ! grep -q "\"frameworkVersion\": \"$CANONICAL_FLUTTER_VER\"" "$TMP_VER_JSON" ||
-	! grep -q "\"channel\": \"stable\"" "$TMP_VER_JSON" ||
+	! grep -q "\"channel\": \"$CANONICAL_CHANNEL\"" "$TMP_VER_JSON" ||
 	! grep -q "\"repositoryUrl\": \"https://github.com/flutter/flutter.git\"" "$TMP_VER_JSON" ||
 	! grep -q "\"frameworkRevision\": \"$CANONICAL_FRAMEWORK_REV\"" "$TMP_VER_JSON" ||
 	! grep -q "\"engineRevision\": \"$CANONICAL_ENGINE_REV\"" "$TMP_VER_JSON" ||

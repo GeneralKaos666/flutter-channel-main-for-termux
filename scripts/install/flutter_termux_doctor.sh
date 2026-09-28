@@ -82,6 +82,7 @@ if [ ! -f "$MANIFEST_PATH" ] && [ -f "$FLUTTER_BASE_DIR/bin/cache/canonical_mani
 fi
 
 EXP_VER="main"
+EXP_CHANNEL="main"
 EXP_REV="8db55268667c738b90677d49857ff42938e9c9fa"
 EXP_DART="3.14.0-271.0.dev"
 if [ -f "$MANIFEST_PATH" ]; then
@@ -102,7 +103,7 @@ if [ -f "$VER_FILE" ]; then
     v_dver="$(grep -o '"dartSdkVersion": *"[^"]*"' "$VER_FILE" 2>/dev/null | cut -d'"' -f4 || echo "unknown")"
 
     ver_errs=()
-    [ "$v_chan" != "stable" ] && ver_errs+=("channel='$v_chan'(expected 'stable')")
+    [ "$v_chan" != "$EXP_CHANNEL" ] && ver_errs+=("channel='$v_chan'(expected '$EXP_CHANNEL')")
     [ "$v_rev" != "$EXP_REV" ] && ver_errs+=("revision='$v_rev'(expected '$EXP_REV')")
     [ "$v_fver" != "$EXP_VER" ] && ver_errs+=("version='$v_fver'(expected '$EXP_VER')")
     [ "$v_dver" != "$EXP_DART" ] && ver_errs+=("dartSdk='$v_dver'(expected '$EXP_DART')")

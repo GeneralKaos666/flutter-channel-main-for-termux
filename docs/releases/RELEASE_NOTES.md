@@ -21,6 +21,8 @@ This release updates the Termux Flutter SDK package to Flutter 3.47.5. It incorp
 ```bash
 pkg update -y
 pkg install -y x11-repo wget openjdk-21 7zip
+# NOTE (tracking-main): no hosted main-channel release exists yet. Build the
+# deb yourself (see BUILD_GUIDE.md) and adb push it instead of wget.
 wget https://github.com/GeneralKaos666/flutter-for-termux/releases/download/main/flutter_main-1_aarch64.deb
 dpkg -i flutter_main-1_aarch64.deb
 apt --fix-broken install -y
