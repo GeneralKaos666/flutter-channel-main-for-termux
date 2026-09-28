@@ -108,7 +108,23 @@ class BuildTest(unittest.TestCase):
             check=True,
         )
         if tag:
-            subprocess.run(["git", "-C", path, "tag", "-a", tag, "-m", "test"], check=True)
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    path,
+                    "-c",
+                    "user.email=t@t",
+                    "-c",
+                    "user.name=t",
+                    "tag",
+                    "-a",
+                    tag,
+                    "-m",
+                    "test",
+                ],
+                check=True,
+            )
 
     @patch("build.git.Repo.clone_from")
     def test_clone_skips_when_main_branch_matches(self, clone_from):
