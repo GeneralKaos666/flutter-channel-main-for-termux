@@ -18,91 +18,91 @@ from sysroot import Sysroot
 
 
 class GitProgress(git.RemoteProgress):
-    def update(self, op_code, cur_count, max_count=None, message=''):
+    def update(self, op_code, cur_count, max_count=None, message=""):
         logger.trace(f"cloning {cur_count}/{max_count} {message}")
 
 
 def ndk_vulkan_include(toolchain):
     # NDK sysroot canonical Vulkan headers (includes vulkan_android.h with
     # VkAndroidHardwareBufferUsageANDROID and other platform types).
-    return Path(toolchain, 'sysroot', 'usr', 'include')
+    return Path(toolchain, "sysroot", "usr", "include")
 
 
 def termux_stubs_dir():
     # Stub headers for Android platform-internal APIs absent from the NDK
     # (hardware/hwvulkan.h, vndk/hardware_buffer.h, vulkan/vk_android_native_buffer.h).
-    return Path(__file__).parent / 'stubs'
+    return Path(__file__).parent / "stubs"
 
 
 def gn_list(items):
-    quoted = ', '.join(f'"{it}"' for it in items)
-    return f'[{quoted}]'
+    quoted = ", ".join(f'"{it}"' for it in items)
+    return f"[{quoted}]"
 
 
 def require_tools(*names):
     missing = [n for n in names if shutil.which(n) is None]
     if missing:
-        raise RuntimeError(f'missing required tools: {", ".join(missing)}')
+        raise RuntimeError(f"missing required tools: {', '.join(missing)}")
 
 
 @utils.record
 class Build:
     @utils.recordm
-    def __init__(self, conf='build.toml'):
+    def __init__(self, conf="build.toml"):
         path = Path(__file__).parent
-        conf = path/conf
+        conf = path / conf
 
-        with open(conf, 'rb') as f:
+        with open(conf, "rb") as f:
             cfg = tomllib.load(f)
 
-        ndk = cfg['ndk'].get('path') or os.environ.get('ANDROID_NDK')
-        api = cfg['ndk'].get('api')
-        tag = cfg['flutter'].get('tag')
-        repo = cfg['flutter'].get('repo')
-        root = cfg['flutter'].get('path')
-        arch = cfg['build'].get('arch')
-        mode = cfg['build'].get('runtime')
-        gclient = cfg['build'].get('gclient')
-        sysroot_cfg = dict(cfg['sysroot'])
-        syspath = sysroot_cfg.pop('path')
-        package = cfg['package'].get('conf')
-        release = cfg['package'].get('path')
-        pkg_rel = str(cfg['package'].get('pkg_rel') or '').strip()
-        patches = cfg.get('patch')
+        ndk = cfg["ndk"].get("path") or os.environ.get("ANDROID_NDK")
+        api = cfg["ndk"].get("api")
+        tag = cfg["flutter"].get("tag")
+        repo = cfg["flutter"].get("repo")
+        root = cfg["flutter"].get("path")
+        arch = cfg["build"].get("arch")
+        mode = cfg["build"].get("runtime")
+        gclient = cfg["build"].get("gclient")
+        sysroot_cfg = dict(cfg["sysroot"])
+        syspath = sysroot_cfg.pop("path")
+        package = cfg["package"].get("conf")
+        release = cfg["package"].get("path")
+        pkg_rel = str(cfg["package"].get("pkg_rel") or "").strip()
+        patches = cfg.get("patch")
 
         if not ndk:
-            raise ValueError('neither ndk path nor ANDROID_NDK is set')
+            raise ValueError("neither ndk path nor ANDROID_NDK is set")
         if not tag:
-            raise ValueError('require flutter tag')
+            raise ValueError("require flutter tag")
 
         # TODO: check parameters
         self.tag = tag
         self.pkg_rel = pkg_rel
-        self.package_version = f'{self.tag}-{self.pkg_rel}' if self.pkg_rel else self.tag
-        self.dart_version = cfg['flutter'].get('dart_version') or ''
-        self.framework_revision = cfg['flutter'].get('framework_revision') or ''
-        self.framework_commit_date = cfg['flutter'].get('framework_commit_date') or ''
-        self.devtools_version = cfg['flutter'].get('devtools_version') or ''
-        self.ndk_version = cfg['ndk'].get('version') or ''
-        self.compile_sdk = cfg['android'].get('compile_sdk')
-        self.target_sdk = cfg['android'].get('target_sdk')
+        self.package_version = f"{self.tag}-{self.pkg_rel}" if self.pkg_rel else self.tag
+        self.dart_version = cfg["flutter"].get("dart_version") or ""
+        self.framework_revision = cfg["flutter"].get("framework_revision") or ""
+        self.framework_commit_date = cfg["flutter"].get("framework_commit_date") or ""
+        self.devtools_version = cfg["flutter"].get("devtools_version") or ""
+        self.ndk_version = cfg["ndk"].get("version") or ""
+        self.compile_sdk = cfg["android"].get("compile_sdk")
+        self.target_sdk = cfg["android"].get("target_sdk")
         self.api = api or 26
         self.conf = conf
         # TODO: detect host
-        self.host = 'linux-x86_64'
-        self.repo = repo or 'https://github.com/flutter/flutter'
-        self.arch = arch or 'arm64'
-        self.mode = mode or 'debug'
-        self.sysroot = Sysroot(path=path/syspath, **sysroot_cfg)
-        self.root = path/root
-        self.gclient = path/gclient
-        self.release = path/release
-        self.toolchain = Path(ndk, f'toolchains/llvm/prebuilt/{self.host}')
+        self.host = "linux-x86_64"
+        self.repo = repo or "https://github.com/flutter/flutter"
+        self.arch = arch or "arm64"
+        self.mode = mode or "debug"
+        self.sysroot = Sysroot(path=path / syspath, **sysroot_cfg)
+        self.root = path / root
+        self.gclient = path / gclient
+        self.release = path / release
+        self.toolchain = Path(ndk, f"toolchains/llvm/prebuilt/{self.host}")
 
         if not self.release.parent.is_dir():
             raise ValueError(f'bad release path: "{release}"')
 
-        with open(path/package, 'rb') as f:
+        with open(path / package, "rb") as f:
             self.package = yaml.safe_load(f)
 
         if isinstance(patches, dict):
@@ -112,14 +112,12 @@ class Build:
                 return self.patch(**{**self.patches[key], **kwargs})
 
             for k, v in patches.items():
-                self.patches[k] = {
-                    'file': path/v['file'],
-                    'path': self.root/v['path']}
-                self.__dict__[f'patch_{k}'] = lambda k=k, **kw: patch(k, **kw)
+                self.patches[k] = {"file": path / v["file"], "path": self.root / v["path"]}
+                self.__dict__[f"patch_{k}"] = lambda k=k, **kw: patch(k, **kw)
 
     def config(self):
-        info = (f'{k}\t: {v}' for k, v in self.__dict__.items() if k != 'package')
-        logger.info('\n'+'\n'.join(info))
+        info = (f"{k}\t: {v}" for k, v in self.__dict__.items() if k != "package")
+        logger.info("\n" + "\n".join(info))
 
     def clone(self, *, url: str = None, tag: str = None, out: str = None, force: bool = False):
         url = url or self.repo
@@ -127,32 +125,29 @@ class Build:
         tag = tag or self.tag
         progress = GitProgress()
 
-        if utils.flutter_tag(out) == tag and not force:
-            logger.info('flutter exists, skip.')
+        if utils.flutter_checkout_matches(out, tag) and not force:
+            logger.info("flutter exists, skip.")
             return
         elif os.path.isdir(out):
             import datetime
-            stamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
-            backup = f'{out}.old.{stamp}'
-            logger.info(f'moving {out} to {backup} ...')
+
+            stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+            backup = f"{out}.old.{stamp}"
+            logger.info(f"moving {out} to {backup} ...")
             os.rename(out, backup)
 
         try:
-            git.Repo.clone_from(
-                url=url,
-                to_path=out,
-                progress=progress,
-                branch=tag)
+            git.Repo.clone_from(url=url, to_path=out, progress=progress, branch=tag)
         except git.exc.GitCommandError:
-            raise RuntimeError('\n'.join(progress.error_lines))
+            raise RuntimeError("\n".join(progress.error_lines))
 
     def sync(self, *, cfg: str = None, root: str = None):
         cfg = cfg or self.gclient
         src = root or self.root
 
-        shutil.copy(cfg, os.path.join(src, '.gclient'))
-        cmd = ['gclient', 'sync', '-DR', '--no-history']
-        logger.info(f'running: {" ".join(cmd)} (cwd={src})')
+        shutil.copy(cfg, os.path.join(src, ".gclient"))
+        cmd = ["gclient", "sync", "-DR", "--no-history"]
+        logger.info(f"running: {' '.join(cmd)} (cwd={src})")
         subprocess.run(cmd, cwd=src, check=True)
 
     def patch(self, *, file, path):
@@ -175,34 +170,50 @@ class Build:
         vulkan = ndk_vulkan_include(toolchain)
         stubs = termux_stubs_dir()
         cmd = [
-            'vpython3',
-            'engine/src/flutter/tools/gn',
-            '--linux',
-            '--linux-cpu', arch,
-            '--enable-fontconfig',
-            '--no-goma',
-            '--no-backtrace',
-            '--clang',
-            '--lto',
-            '--no-enable-unittests',
-            '--no-build-embedder-examples',
-            '--no-prebuilt-dart-sdk',
-            '--target-toolchain', toolchain,
-            '--runtime-mode', mode,
-            '--no-build-glfw-shell',
-            '--gn-args', 'symbol_level=0',
-            '--gn-args', 'arm_use_neon=false',
-            '--gn-args', 'arm_optionally_use_neon=true',
-            '--gn-args', 'dart_include_wasm_opt=false',
-            '--gn-args', 'dart_platform_sdk=false',
-            '--gn-args', 'is_desktop_linux=false',
-            '--gn-args', 'use_default_linux_sysroot=false',
-            '--gn-args', 'skia_use_perfetto=false',
-            '--gn-args', f'custom_sysroot="{sysroot}"',
-            '--gn-args', 'is_termux=true',
-            '--gn-args', f'is_termux_host={utils.__TERMUX__}',
-            '--gn-args', f'termux_api_level={api}',
-            '--gn-args', 'extra_ldflags=["-lEGL", "-lGLESv2", "-llog"]',
+            "vpython3",
+            "engine/src/flutter/tools/gn",
+            "--linux",
+            "--linux-cpu",
+            arch,
+            "--enable-fontconfig",
+            "--no-goma",
+            "--no-backtrace",
+            "--clang",
+            "--lto",
+            "--no-enable-unittests",
+            "--no-build-embedder-examples",
+            "--no-prebuilt-dart-sdk",
+            "--target-toolchain",
+            toolchain,
+            "--runtime-mode",
+            mode,
+            "--no-build-glfw-shell",
+            "--gn-args",
+            "symbol_level=0",
+            "--gn-args",
+            "arm_use_neon=false",
+            "--gn-args",
+            "arm_optionally_use_neon=true",
+            "--gn-args",
+            "dart_include_wasm_opt=false",
+            "--gn-args",
+            "dart_platform_sdk=false",
+            "--gn-args",
+            "is_desktop_linux=false",
+            "--gn-args",
+            "use_default_linux_sysroot=false",
+            "--gn-args",
+            "skia_use_perfetto=false",
+            "--gn-args",
+            f'custom_sysroot="{sysroot}"',
+            "--gn-args",
+            "is_termux=true",
+            "--gn-args",
+            f"is_termux_host={utils.__TERMUX__}",
+            "--gn-args",
+            f"termux_api_level={api}",
+            "--gn-args",
+            'extra_ldflags=["-lEGL", "-lGLESv2", "-llog"]',
             # Provide stub headers for Android platform-internal APIs that are
             # not part of the public NDK (e.g. vk_android_native_buffer.h,
             # hardware/hwvulkan.h, vndk/hardware_buffer.h).
@@ -215,28 +226,30 @@ class Build:
             #   symbols are present, so the weak-import behaviour is correct.
             # -Wno-newline-eof: suppress warning on third-party headers
             #   (SwiftShader) that legitimately lack a trailing newline.
-            '--gn-args',
-            f'extra_cflags={gn_list([f"-I{vulkan}", f"-I{stubs}", "-D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__"])}',
-            '--gn-args',
-            f'extra_cflags_cc={gn_list([f"-I{vulkan}", f"-I{stubs}", "-D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__", "-Wno-newline-eof"])}',
+            "--gn-args",
+            f"extra_cflags={gn_list([f'-I{vulkan}', f'-I{stubs}', '-D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__'])}",
+            "--gn-args",
+            f"extra_cflags_cc={gn_list([f'-I{vulkan}', f'-I{stubs}', '-D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__', '-Wno-newline-eof'])}",
         ]
-        logger.info(f'running gn configure: arch={arch} mode={mode}')
+        logger.info(f"running gn configure: arch={arch} mode={mode}")
         subprocess.run(cmd, cwd=root, check=True)
 
     def build(self, arch: str, mode: str, root: str = None, jobs: int = None):
         root = root or self.root
         cmd = [
-            'ninja', '-C', utils.target_output(root, arch, mode),
-            'flutter',
-            'flutter/build/archives:artifacts',
-            'flutter/build/archives:dart_sdk_archive',
-            'flutter/build/archives:flutter_patched_sdk',
-            'flutter/shell/platform/linux:flutter_gtk',
-            'flutter/tools/font_subset',
+            "ninja",
+            "-C",
+            utils.target_output(root, arch, mode),
+            "flutter",
+            "flutter/build/archives:artifacts",
+            "flutter/build/archives:dart_sdk_archive",
+            "flutter/build/archives:flutter_patched_sdk",
+            "flutter/shell/platform/linux:flutter_gtk",
+            "flutter/tools/font_subset",
         ]
         if jobs:
-            cmd.append(f'-j{jobs}')
-        logger.info(f'running: {" ".join(cmd)}')
+            cmd.append(f"-j{jobs}")
+        logger.info(f"running: {' '.join(cmd)}")
         subprocess.run(cmd, check=True)
 
     def debuild(self, arch: str, output: str = None, root: str = None, **conf):
@@ -255,19 +268,20 @@ class Build:
             compile_sdk=self.compile_sdk,
             target_sdk=self.target_sdk,
             package_version=self.package_version,
-            **conf)
+            **conf,
+        )
         pkg.debuild(output=output)
 
     def output(self, arch: str):
         if self.release.is_dir():
-            name = f'flutter_{self.package_version}_{utils.termux_arch(arch)}.deb'
-            return self.release/name
+            name = f"flutter_{self.package_version}_{utils.termux_arch(arch)}.deb"
+            return self.release / name
         else:
             return self.release
 
     # TODO: check gclient and ninja existence
     def __call__(self):
-        require_tools('gclient', 'ninja')
+        require_tools("gclient", "ninja")
         self.config()
         self.clone()
         self.sync()
@@ -280,7 +294,7 @@ class Build:
             self.debuild(arch=arch, output=self.output(arch))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logger.remove()
     logger.add(
         sys.stdout,
@@ -289,6 +303,7 @@ if __name__ == '__main__':
             "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
             "<level>{level: <9}</level> | "
             "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
-            "<level>{message}</level>")
-        )
+            "<level>{message}</level>"
+        ),
+    )
     fire.Fire(Build())

@@ -1,5 +1,5 @@
 [flutter]
-tag = '3.47.5'
+tag = 'main'
 repo = 'https://github.com/flutter/flutter'
 path = './flutter'
 dart_version = '3.13.4'
