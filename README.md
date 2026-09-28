@@ -27,7 +27,7 @@ Download:
 TAG=3.47.5
 PKG_REL=1
 DEB="flutter_${TAG}-${PKG_REL}_aarch64.deb"
-BASE_URL="https://github.com/GeneralKaos666/flutter-for-termux/releases/download/${TAG}/"
+BASE_URL="https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/${TAG}/"
 
 curl -fSL -o "$DEB" "${BASE_URL}${DEB}"
 curl -fSL -o "${DEB}.sha256" "${BASE_URL}${DEB}.sha256"
@@ -49,7 +49,7 @@ pkg install x11-repo
 ### One-command install
 
 ```bash
-curl -sL https://raw.githubusercontent.com/GeneralKaos666/flutter-for-termux/main/install_flutter_complete.sh \
+curl -sL https://raw.githubusercontent.com/GeneralKaos666/prerelease-flutter-for-termux/main/install_flutter_complete.sh \
   -o install_flutter_complete.sh
 bash install_flutter_complete.sh
 ```
@@ -63,7 +63,7 @@ This installs the release package plus the on-device Android SDK/toolchain
 TAG=3.47.5
 PKG_REL=1
 DEB="flutter_${TAG}-${PKG_REL}_aarch64.deb"
-BASE_URL="https://github.com/GeneralKaos666/flutter-for-termux/releases/download/${TAG}/"
+BASE_URL="https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/${TAG}/"
 
 curl -fSL -o "$DEB" "${BASE_URL}${DEB}"
 curl -fSL -o "${DEB}.sha256" "${BASE_URL}${DEB}.sha256"

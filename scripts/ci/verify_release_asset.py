@@ -369,7 +369,7 @@ def main():
 
     # 4. Retrieve release info from GitHub API via urllib
     gh_token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
-    repo = os.environ.get("GITHUB_REPOSITORY", "GeneralKaos666/flutter-for-termux")
+    repo = os.environ.get("GITHUB_REPOSITORY", "GeneralKaos666/prerelease-flutter-for-termux")
     req_url = f"https://api.github.com/repos/{repo}/releases/tags/{target_tag}"
 
     headers = {}

@@ -33,7 +33,7 @@ This guide covers `flutter_main-1_aarch64.deb`, targeting the following on ARM64
 ## Method 1: One-Command Install (Recommended)
 
 ```bash
-curl -sL https://raw.githubusercontent.com/GeneralKaos666/flutter-for-termux/main/install_flutter_complete.sh -o ~/install.sh
+curl -sL https://raw.githubusercontent.com/GeneralKaos666/prerelease-flutter-for-termux/main/install_flutter_complete.sh -o ~/install.sh
 bash ~/install.sh
 ```
 
@@ -49,7 +49,7 @@ cd ~
 # NOTE (tracking-main): no hosted main-channel release exists yet. Build the
 # deb yourself (see BUILD_GUIDE.md) and adb push it, e.g.:
 # adb push flutter_main-1_aarch64.deb /data/local/tmp/
-wget https://github.com/GeneralKaos666/flutter-for-termux/releases/download/main/flutter_main-1_aarch64.deb
+wget https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/main/flutter_main-1_aarch64.deb
 sha256sum flutter_main-1_aarch64.deb
 # No published hash to confirm against yet; the installer fails closed until
 # EXPECTED_SHA256 is refreshed after the first main build.

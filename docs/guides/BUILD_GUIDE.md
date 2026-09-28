@@ -162,7 +162,7 @@ echo 'export PATH="$HOME/depot_tools:$PATH"' >> ~/.bashrc
 ```bash
 mkdir -p ~/projects
 cd ~/projects
-git clone https://github.com/GeneralKaos666/flutter-for-termux.git termux-flutter
+git clone https://github.com/GeneralKaos666/prerelease-flutter-for-termux.git termux-flutter
 cd termux-flutter
 ```
 

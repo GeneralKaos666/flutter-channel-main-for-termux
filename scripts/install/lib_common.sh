@@ -22,7 +22,7 @@ source_versions_common() {
 		source "scripts/install/versions_common.sh"
 		return 0
 	fi
-	curl -fsSL "https://raw.githubusercontent.com/GeneralKaos666/flutter-for-termux/main/scripts/install/versions_common.sh" -o versions_common.sh 2>/dev/null || return 1
+	curl -fsSL "https://raw.githubusercontent.com/GeneralKaos666/prerelease-flutter-for-termux/main/scripts/install/versions_common.sh" -o versions_common.sh 2>/dev/null || return 1
 	source ./versions_common.sh
 }
 

@@ -293,7 +293,7 @@ release/flutter_main-1_aarch64.deb
 
 Test in a new Termux environment:
 ```bash
-curl -sL https://raw.githubusercontent.com/GeneralKaos666/flutter-for-termux/main/install_flutter_complete.sh -o ~/install.sh && bash ~/install.sh
+curl -sL https://raw.githubusercontent.com/GeneralKaos666/prerelease-flutter-for-termux/main/install_flutter_complete.sh -o ~/install.sh && bash ~/install.sh
 ```
 
 ---

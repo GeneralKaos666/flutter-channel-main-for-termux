@@ -16,12 +16,12 @@ export EXPECTED_SHA256=${EXPECTED_SHA256:-${FLUTTER_DEB_SHA256:-}}
 
 source "$(dirname "$0")/../install/lib_common.sh" || {
 	echo "Fetching lib_common.sh..."
-	curl -sLO https://raw.githubusercontent.com/GeneralKaos666/flutter-for-termux/main/scripts/install/lib_common.sh
+	curl -sLO https://raw.githubusercontent.com/GeneralKaos666/prerelease-flutter-for-termux/main/scripts/install/lib_common.sh
 	source ./lib_common.sh
 }
 
 export DEB_NAME=${DEB_NAME:-${FLUTTER_DEB_NAME:-"flutter_${FLUTTER_VERSION}_aarch64.deb"}}
-export DEB_URL=${DEB_URL:-"https://github.com/GeneralKaos666/flutter-for-termux/releases/download/${RELEASE_TAG}/${DEB_NAME}"}
+export DEB_URL=${DEB_URL:-"https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/${RELEASE_TAG}/${DEB_NAME}"}
 
 FAILED=0
 

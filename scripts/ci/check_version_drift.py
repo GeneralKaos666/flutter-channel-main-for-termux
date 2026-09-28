@@ -92,7 +92,7 @@ def apply_version_autofix(cfg: dict[str, str], root_path: Path | None = None) ->
         original = text
 
         text = re.sub(
-            rf"(https://github\.com/GeneralKaos666/flutter-for-termux/releases/download/){SEMVER_PATTERN}(/)",
+            rf"(https://github\.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/){SEMVER_PATTERN}(/)",
             rf"\g<1>{release_tag}\g<2>",
             text,
         )

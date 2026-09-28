@@ -3,7 +3,7 @@
 # Termux Flutter Complete Installation Script
 # Complete Flutter + Android SDK Installation for Termux
 #
-# Usage: curl -sL https://raw.githubusercontent.com/GeneralKaos666/flutter-for-termux/main/install_flutter_complete.sh -o ~/install.sh && bash ~/install.sh
+# Usage: curl -sL https://raw.githubusercontent.com/GeneralKaos666/prerelease-flutter-for-termux/main/install_flutter_complete.sh -o ~/install.sh && bash ~/install.sh
 # Version: 2026-01-06 v14
 #
 # This script will automatically:
@@ -27,7 +27,7 @@ elif [ -f "scripts/install/lib_common.sh" ]; then
 else
 	echo "Fetching lib_common.sh..."
 	mkdir -p scripts/install
-	curl -sLO https://raw.githubusercontent.com/GeneralKaos666/flutter-for-termux/main/scripts/install/lib_common.sh || true
+	curl -sLO https://raw.githubusercontent.com/GeneralKaos666/prerelease-flutter-for-termux/main/scripts/install/lib_common.sh || true
 	if [ -f lib_common.sh ]; then
 		mv lib_common.sh scripts/install/
 	fi
@@ -366,7 +366,7 @@ fi
 
 # Version/toolchain constants come from lib_common.sh -> versions_common.sh
 # (FLUTTER_VERSION, NDK_VERSION, the download URLs, and their SHA256 pins).
-REPO_BASE="https://raw.githubusercontent.com/GeneralKaos666/flutter-for-termux/main"
+REPO_BASE="https://raw.githubusercontent.com/GeneralKaos666/prerelease-flutter-for-termux/main"
 
 echo -e "${CYAN}"
 echo "╔═══════════════════════════════════════════════════════════╗"
@@ -453,7 +453,7 @@ mkdir -p "$WORK_DIR/apt_staging"
 # Pre-download and verify all packages (Staging Phase)
 echo "Pre-downloading and verifying all packages..."
 FLUTTER_DEB_NAME="${FLUTTER_DEB_NAME:-flutter_${FLUTTER_VERSION}-${FLUTTER_PKG_REL:-1}_aarch64.deb}"
-FLUTTER_DEB_URL="https://github.com/GeneralKaos666/flutter-for-termux/releases/download/${RELEASE_TAG}/${FLUTTER_DEB_NAME}"
+FLUTTER_DEB_URL="https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/${RELEASE_TAG}/${FLUTTER_DEB_NAME}"
 
 
 # Snapshot existing package state for rollback
@@ -1044,5 +1044,5 @@ echo "4. Hot Reload development:"
 echo -e "   ${BLUE}adb connect 127.0.0.1:<port>${NC}"
 echo -e "   ${BLUE}flutter run${NC}"
 echo ""
-echo -e "Docs: ${BLUE}https://github.com/GeneralKaos666/flutter-for-termux${NC}"
+echo -e "Docs: ${BLUE}https://github.com/GeneralKaos666/prerelease-flutter-for-termux${NC}"
 echo ""
