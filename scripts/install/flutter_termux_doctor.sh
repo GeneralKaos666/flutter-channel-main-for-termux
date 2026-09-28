@@ -82,8 +82,8 @@ if [ ! -f "$MANIFEST_PATH" ] && [ -f "$FLUTTER_BASE_DIR/bin/cache/canonical_mani
 fi
 
 EXP_VER="main"
-EXP_REV="6a19cca56475dbfba1478ee68d7bd0c2ef891da1"
-EXP_DART="3.13.4"
+EXP_REV="8db55268667c738b90677d49857ff42938e9c9fa"
+EXP_DART="3.14.0-271.0.dev"
 if [ -f "$MANIFEST_PATH" ]; then
     m_v="$(grep -o '"flutter_version": *"[^"]*"' "$MANIFEST_PATH" 2>/dev/null | cut -d'"' -f4 || echo "")"
     m_r="$(grep -o '"framework_revision": *"[^"]*"' "$MANIFEST_PATH" 2>/dev/null | cut -d'"' -f4 || echo "")"
