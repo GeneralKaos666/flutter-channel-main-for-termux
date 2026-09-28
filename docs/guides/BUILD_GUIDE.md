@@ -2,7 +2,28 @@
 
 This document explains how to build a Flutter deb package that includes Android gen_snapshot from scratch.
 
-## Current Version Status (3.47.5 / 2026-08-15)
+## Current Version Status (main channel)
+
+## Tracking-main branch policy (local-only)
+
+This branch (`tracking-main`) builds the Flutter `main` channel instead of
+stable: `build.toml [flutter] tag` is `main`, so the produced deb is
+`flutter_main-1_aarch64.deb`. There are no hosted `main`-channel releases.
+
+- Refresh loop: `python3 build.py clone --force`, verify `patches/*.patch`
+  still apply (a shallow `main` checkout plus the DEPS-pinned dart/skia
+  revisions is enough for `git apply --check`; a full `gclient sync` needs
+  a Linux build host), pin `dart_version` / `framework_revision` /
+  `framework_commit_date` / `devtools_version` in `build.toml` to the
+  probed values, run `python scripts/ci/check_version_drift.py --fix`,
+  hand-sync the `CANONICAL_*` markers in `post_install.sh` and the `EXP_*`
+  markers in `flutter_termux_doctor.sh` (the autofix does not cover them),
+  then run the full lightweight verification from `AGENTS.md`.
+- `autorelease.yml` and the `build.yml` publish step are guarded to
+  `refs/heads/main` (stable) and never publish from this branch.
+- Full pipeline still runs on a build host via `python3 build.py`
+  (`sysroot` then `configure --arch=arm64` / `build` / `debuild` per
+  mode). It cannot run on-device (no `gclient` / NDK here).
 
 | Item | Value |
 |------|----|
