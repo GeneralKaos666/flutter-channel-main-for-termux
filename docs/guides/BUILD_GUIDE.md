@@ -6,7 +6,7 @@ This document explains how to build a Flutter deb package that includes Android 
 
 This branch (`tracking-main`) builds the Flutter `main` channel instead of
 stable: `build.toml [flutter] tag` is `main`, so the produced deb is
-`flutter_main-1_aarch64.deb`. There are no hosted `main`-channel releases.
+`flutter_0~main-1_aarch64.deb`. There are no hosted `main`-channel releases.
 
 - Refresh loop: `python3 build.py clone --force`, verify `patches/*.patch`
   still apply (a shallow `main` checkout plus the DEPS-pinned dart/skia
@@ -28,7 +28,7 @@ stable: `build.toml [flutter] tag` is `main`, so the produced deb is
 |------|----|
 | Flutter tag | `main` |
 | Engine revision | `TBD (refresh on first main build)` |
-| Package | `flutter_main-1_aarch64.deb` |
+| Package | `flutter_0~main-1_aarch64.deb` |
 | Package size | `TBD (refresh on first main build)` |
 | SHA256 | `TBD (refresh on first main build)` |
 | Device smoke | Samsung SM-X716B / Android 16 / Termux |
@@ -212,7 +212,7 @@ python3 build.py debuild --arch=arm64
 
 After the build completes, the deb package is located at:
 ```
-release/flutter_main-1_aarch64.deb
+release/flutter_0~main-1_aarch64.deb
 ```
 
 ## deb Package Contents
@@ -294,7 +294,7 @@ The Flutter Engine source is about 30GB and the build output about 20GB, so you 
 After installing the deb, run the following in Termux:
 
 ```bash
-dpkg -i flutter_main-1_aarch64.deb
+dpkg -i flutter_0~main-1_aarch64.deb
 apt --fix-broken install -y
 bash $PREFIX/share/flutter/post_install.sh
 source $PREFIX/etc/profile.d/flutter.sh

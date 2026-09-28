@@ -8,7 +8,7 @@ This release updates the Termux Flutter SDK package to Flutter main. It incorpor
 
 | Item | Value |
 |------|-------|
-| Package | `flutter_main-1_aarch64.deb` |
+| Package | `flutter_0~main-1_aarch64.deb` |
 | Size | `TBD (refresh on first main build)` |
 | SHA256 | `TBD (refresh on first main build)` |
 | Flutter | main |
@@ -23,8 +23,8 @@ pkg update -y
 pkg install -y x11-repo wget openjdk-21 7zip
 # NOTE (tracking-main): no hosted main-channel release exists yet. Build the
 # deb yourself (see BUILD_GUIDE.md) and adb push it instead of wget.
-wget https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/main/flutter_main-1_aarch64.deb
-dpkg -i flutter_main-1_aarch64.deb
+wget https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/main/flutter_0~main-1_aarch64.deb
+dpkg -i flutter_0~main-1_aarch64.deb
 apt --fix-broken install -y
 bash $PREFIX/share/flutter/post_install.sh
 source $PREFIX/etc/profile.d/flutter.sh

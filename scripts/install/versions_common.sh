@@ -11,7 +11,10 @@ export RELEASE_TAG="main"
 # No hosted main-channel release exists yet: refresh after the first main
 # build or pass FLUTTER_DEB_SHA256. Installers fail closed until then.
 export EXPECTED_SHA256="TBD-refresh-after-first-main-build"
-export FLUTTER_DEB_NAME="flutter_${FLUTTER_VERSION}-${FLUTTER_PKG_REL}_aarch64.deb"
+# dpkg versions must start with a digit: branch tags like 'main' ship as '0~main'.
+_DEB_TAG="${FLUTTER_VERSION}"
+case "${_DEB_TAG}" in [0-9]*) ;; *) _DEB_TAG="0~${_DEB_TAG}" ;; esac
+export FLUTTER_DEB_NAME="flutter_${_DEB_TAG}-${FLUTTER_PKG_REL}_aarch64.deb"
 
 # Android SDK (mumumusuc/termux-android-sdk apt package, release tag below)
 export ANDROID_SDK_VERSION="${ANDROID_SDK_VERSION:-35.0.0}"

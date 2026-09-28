@@ -41,7 +41,7 @@ INSTALLER_SCRIPTS = [
     "scripts/test/gh_e2e_test.sh",
 ]
 SEMVER_PATTERN = r"\d+\.\d+\.\d+"
-DEB_NAME_PATTERN = rf"flutter_(?:{SEMVER_PATTERN}(?:-[^/\s`\"\']+)?|main(?:-[^/\s`\"\']+)?)_aarch64\.deb"
+DEB_NAME_PATTERN = rf"flutter_(?:{SEMVER_PATTERN}(?:-[^/\s`\"\']+)?|(?:0~)?main(?:-[^/\s`\"\']+)?)_aarch64\.deb"
 
 
 def fail(msg: str) -> None:
@@ -149,6 +149,10 @@ def load_build_config(root_path: Path | None = None) -> dict[str, str]:
     asset_name = flutter_cfg.get("asset_name", "")
     package_cfg = data.get("package", {})
     pkg_rel = str(package_cfg.get("pkg_rel", "") or "")
+    # Mirror utils.deb_version (dpkg versions must start with a digit;
+    # branch tags like 'main' ship as '0~main-1'). Kept inline: this script
+    # runs with scripts/ci on sys.path, where `import utils` fails.
+    deb_tag = str(tag) if str(tag)[:1].isdigit() else f"0~{tag}"
 
     if not tag:
         fail("build.toml [flutter] missing 'tag'")
@@ -164,7 +168,7 @@ def load_build_config(root_path: Path | None = None) -> dict[str, str]:
         "sha256": str(sha256),
         "size": str(size) if size else "",
         "pkg_rel": pkg_rel,
-        "asset_name": str(asset_name) or (f"flutter_{tag}-{pkg_rel}_aarch64.deb" if pkg_rel else f"flutter_{tag}_aarch64.deb"),
+        "asset_name": str(asset_name) or (f"flutter_{deb_tag}-{pkg_rel}_aarch64.deb" if pkg_rel else f"flutter_{deb_tag}_aarch64.deb"),
         "channel": "main" if str(tag) == "main" else "stable",
     }
 
@@ -279,7 +283,7 @@ def check_agent_guidance_docs(cfg: dict[str, str], root_path: Path | None = None
 
         # Check adb push deb file references
         adb_deb_matches = re.findall(r"flutter_[0-9.]+_aarch64\.deb", text)
-        adb_deb_matches += re.findall(r"flutter_main(?:-[^/\s`\"']+)?_aarch64\.deb", text)
+        adb_deb_matches += re.findall(r"flutter_(?:0~)?main(?:-[^/\s`\"']+)?_aarch64\.deb", text)
         for deb in adb_deb_matches:
             if deb != asset_name:
                 fail(f"{rel_path}: Deb filename mismatch: found '{deb}', expected '{asset_name}'")
@@ -320,7 +324,7 @@ def check_guide_docs(cfg: dict[str, str], root_path: Path | None = None) -> None
             found_tag = deb_match.group(1)
             if found_tag != tag:
                 fail(f"{rel_path}: Package deb name version mismatch: found '{deb_match.group(0)}', expected '{asset_name}'")
-        for main_match in re.finditer(r"flutter_main(?:-[^/\s`\"']+)?_aarch64\.deb", text):
+        for main_match in re.finditer(r"flutter_(?:0~)?main(?:-[^/\s`\"']+)?_aarch64\.deb", text):
             if main_match.group(0) != asset_name:
                 fail(f"{rel_path}: Package deb name version mismatch: found '{main_match.group(0)}', expected '{asset_name}'")
 

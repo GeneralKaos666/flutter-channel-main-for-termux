@@ -24,6 +24,19 @@ def termux_arch(arch: str):
     raise ValueError(f'unknown arch: "{arch}"')
 
 
+def deb_version(tag: str, pkg_rel: str) -> str:
+    """Debian-policy package version for a Flutter tag.
+
+    dpkg requires the version to start with a digit. Semver tags pass
+    through as '{tag}-{rel}'; branch names such as 'main' get a '0~'
+    prefix ('0~main-1') so the control file parses and the snapshot
+    sorts below future stable releases.
+    """
+    tag, rel = str(tag), str(pkg_rel or "").strip()
+    base = tag if tag[:1].isdigit() else f"0~{tag}"
+    return f"{base}-{rel}" if rel else base
+
+
 def target_output(root: str, arch: str, mode: str, opted: bool = True):
     root = os.path.abspath(os.path.expanduser(root))
     if opted:

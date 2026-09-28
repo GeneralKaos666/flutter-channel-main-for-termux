@@ -78,7 +78,7 @@ class Build:
         # TODO: check parameters
         self.tag = tag
         self.pkg_rel = pkg_rel
-        self.package_version = f"{self.tag}-{self.pkg_rel}" if self.pkg_rel else self.tag
+        self.package_version = utils.deb_version(self.tag, self.pkg_rel)
         self.dart_version = cfg["flutter"].get("dart_version") or ""
         self.framework_revision = cfg["flutter"].get("framework_revision") or ""
         self.framework_commit_date = cfg["flutter"].get("framework_commit_date") or ""

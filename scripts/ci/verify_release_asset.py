@@ -276,7 +276,8 @@ def main():
     expected_package_version = None
     default_asset = None
     if expected_tag:
-        expected_package_version = f"{expected_tag}-{pkg_rel}" if pkg_rel else str(expected_tag)
+        deb_tag = str(expected_tag) if str(expected_tag)[:1].isdigit() else f"0~{expected_tag}"
+        expected_package_version = f"{deb_tag}-{pkg_rel}" if pkg_rel else str(deb_tag)
         default_asset = f"flutter_{expected_package_version}_aarch64.deb"
     expected_asset = flutter_cfg.get("asset_name") or default_asset
     expected_sha256 = flutter_cfg.get("sha256")

@@ -23,6 +23,7 @@ import yaml
 
 import build
 import package
+import utils
 
 
 class BuildTest(unittest.TestCase):
@@ -80,8 +81,7 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(self.instance.mode, runtime or ["debug"])
 
     def test_output_uses_package_version_suffix(self):
-        pkg_rel = str(self.instance.pkg_rel or "").strip()
-        expected_version = f"{self.instance.tag}-{pkg_rel}" if pkg_rel else self.instance.tag
+        expected_version = self.instance.package_version
         output_name = Path(self.instance.output("arm64")).name
         self.assertEqual(output_name, f"flutter_{expected_version}_aarch64.deb")
 
@@ -295,7 +295,7 @@ class PackageManifestTest(unittest.TestCase):
         flutter = self.cfg["flutter"]
         package_cfg = self.cfg.get("package", {})
         pkg_rel = str(package_cfg.get("pkg_rel") or "").strip()
-        package_version = f"{flutter['tag']}-{pkg_rel}" if pkg_rel else flutter["tag"]
+        package_version = utils.deb_version(flutter["tag"], package_cfg.get("pkg_rel"))
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp, "flutter")
