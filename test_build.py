@@ -294,7 +294,6 @@ class PackageManifestTest(unittest.TestCase):
     def test_control_version_uses_package_revision(self):
         flutter = self.cfg["flutter"]
         package_cfg = self.cfg.get("package", {})
-        pkg_rel = str(package_cfg.get("pkg_rel") or "").strip()
         package_version = utils.deb_version(
             flutter["tag"],
             package_cfg.get("pkg_rel"),
