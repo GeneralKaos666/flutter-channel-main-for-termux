@@ -215,6 +215,21 @@ See [CI/CD and device lab](docs/CI_CD.md).
 - [Changelog](docs/releases/CHANGELOG.md) — version history and notable fixes.
 - [Release notes](docs/releases/RELEASE_NOTES.md) — GitHub release body.
 
+## Acknowledgements
+
+This project continues work started elsewhere:
+
+- [mumumusuc/Flutter-Termux](https://github.com/mumumusuc/Flutter-Termux) —
+  the original Termux port: the `is_termux` GN toolchain, Bionic linker
+  handling, and the engine/Dart/Skia patch approach applied via `gclient`
+  hooks.
+- Contributors along the way — Sergey Yamshchikov, Not Sarv, Susan Dahal,
+  and Ron Sloan — for version bumps, docs, and build fixes.
+- Upstream [Flutter](https://github.com/flutter/flutter), Dart, Skia, and
+  Termux, without which none of this builds or runs.
+- This repo continues the `GeneralKaos666/flutter-for-termux` line as
+  `prerelease-flutter-for-termux` tracking Flutter `main`.
+
 ## Limitations
 
 - ARM64 only: `arm` and `x64` gen_snapshot builds fail (32-bit BoringSSL shift
