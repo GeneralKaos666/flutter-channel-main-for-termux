@@ -55,7 +55,7 @@ def replacements(cfg: dict) -> list[tuple[str, str]]:
     except ImportError:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         from version_lib import release_tag as lib_release_tag
-    release = lib_release_tag(fw_ver, fw_date, fw_rev) or tag
+    release = lib_release_tag(fw_ver, fw_date, fw_rev)
     return [
         (r'^export FLUTTER_VERSION="[^"]*"', f'export FLUTTER_VERSION="{tag}"'),
         (

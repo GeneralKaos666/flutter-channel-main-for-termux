@@ -91,9 +91,11 @@ def apply_version_autofix(cfg: dict[str, str], root_path: Path | None = None) ->
         text = path.read_text(encoding="utf-8")
         original = text
 
+        # Any literal tag (semver, "main", "0~main...", stale snapshot tag):
+        # never rewrite $ variable references such as ${RELEASE_TAG}.
         text = re.sub(
-            rf"(https://github\.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/){SEMVER_PATTERN}(/)",
-            rf"\g<1>{release_tag}\g<2>",
+            r"(https://github\.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/)([^/$\s][^/]*)(/)",
+            rf"\g<1>{release_tag}\g<3>",
             text,
         )
         text = re.sub(DEB_NAME_PATTERN, asset_name, text)
@@ -104,9 +106,23 @@ def apply_version_autofix(cfg: dict[str, str], root_path: Path | None = None) ->
         text = replace_line_value(text, "FLUTTER_VERSION", tag)[0]
         text = replace_line_int_value(text, "FLUTTER_PKG_REL", cfg.get("pkg_rel", ""))[0]
         text = replace_line_value(text, "RELEASE_TAG", release_tag)[0]
+        # Non-semver literals (legacy branch tag "main", stale snapshot tag):
+        # replace the whole quoted value, never a $ reference.
+        text = re.sub(
+            r'(?m)^(\s*(?:export\s+)?RELEASE_TAG\s*=\s*["\']?)(?!\$)([^"\'\s\n}]+)(["\']?)',
+            rf"\g<1>{release_tag}\g<3>",
+            text,
+        )
         text = replace_default_var_value(text, "FLUTTER_VERSION", tag)[0]
         text = replace_default_var_int_value(text, "FLUTTER_PKG_REL", cfg.get("pkg_rel", ""))[0]
         text = replace_default_var_value(text, "RELEASE_TAG", release_tag)[0]
+        # Non-semver defaults (e.g. ${RELEASE_TAG:-main}): rewrite the default
+        # but keep the env-override structure.
+        text = re.sub(
+            r"(\$\{\s*RELEASE_TAG\s*:-\s*)(?!\$)([^}\s]*)(\s*\})",
+            rf"\g<1>{release_tag}\g<3>",
+            text,
+        )
         text = replace_line_value(text, "CANONICAL_FLUTTER_VER", tag)[0]
         text = replace_line_value(text, "EXP_VER", tag)[0]
         text = re.sub(
