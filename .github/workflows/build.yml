@@ -121,12 +121,12 @@ jobs:
 
           if not pinned:
               emit(False, "no-pinned-revision")
-              return
+              raise SystemExit(0)
           if head != pinned:
               # Refresh has not landed (conflict, failure, or not yet run):
               # do NOT build stale pins and do NOT push any tag.
               emit(False, "pins-stale")
-              return
+              raise SystemExit(0)
 
           repo = os.environ.get("GITHUB_REPOSITORY", "")
           token = os.environ.get("GITHUB_TOKEN", "")
@@ -144,7 +144,7 @@ jobs:
           except urllib.error.HTTPError as e:
               if e.code == 404:
                   emit(True, "no-release-yet")
-                  return
+                  raise SystemExit(0)
               raise
           assets = {a.get("name", "") for a in release.get("assets", [])}
           if deb_name in assets:
