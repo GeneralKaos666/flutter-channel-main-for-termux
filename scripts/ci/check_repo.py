@@ -284,6 +284,7 @@ def load_build_config() -> dict[str, object]:
     ndk = data.get("ndk", {})
     android = data.get("android", {})
     out["tag"] = flutter.get("tag")
+    out["framework_version"] = flutter.get("framework_version") or ""
     out["ndk_version"] = ndk.get("version")
     out["compile_sdk"] = android.get("compile_sdk")
     out["target_sdk"] = android.get("target_sdk")
@@ -310,6 +311,13 @@ def check_installer_contract() -> None:
         combined += "\n" + versions_file.read_text(encoding="utf-8")
     if f'FLUTTER_VERSION="{tag}"' not in combined:
         fail(f"install_flutter_complete.sh/versions_common.sh default Flutter version is not {tag}")
+    fw_ver = str(cfg.get("framework_version") or "")
+    if fw_ver and not tag[:1].isdigit():
+        if f'FLUTTER_FRAMEWORK_VERSION="{fw_ver}"' not in combined:
+            fail(
+                "install_flutter_complete.sh/versions_common.sh default framework version "
+                f"is not {fw_ver}"
+            )
     if f'NDK_VERSION="{ndk_ver}"' not in combined:
         fail(f"install_flutter_complete.sh/versions_common.sh default NDK version is not {ndk_ver}")
     if "android-ndk-r27" in text:

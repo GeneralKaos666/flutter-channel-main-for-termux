@@ -82,18 +82,25 @@ jobs:
           date = m.get("frameworkCommitDate", "")
           dart = m.get("dartSdkVersion", "")
           devtools = m.get("devToolsVersion", "")
+          fwver = m.get("frameworkVersion", "")
           for name, value in (("frameworkRevision", rev), ("frameworkCommitDate", date),
-                              ("dartSdkVersion", dart), ("devToolsVersion", devtools)):
+                              ("dartSdkVersion", dart), ("devToolsVersion", devtools),
+                              ("frameworkVersion", fwver)):
               if not value:
                   raise SystemExit(f"flutter --version --machine missing {name}; full JSON:\n{json.dumps(m, indent=2)[:2000]}")
           if not re.fullmatch(r"[0-9a-f]{40}", rev):
               raise SystemExit(f"unexpected frameworkRevision: {rev!r}")
           if not re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}", date):
               raise SystemExit(f"unexpected frameworkCommitDate format: {date!r}")
+          if fwver == "0.0.0-unknown":
+              raise SystemExit(f"flutter --version --machine returned unknown frameworkVersion; full JSON:\n{json.dumps(m, indent=2)[:2000]}")
+          if not re.fullmatch(r"\d+\.\d+\.\d+(-\d+\.\d+\.pre(-\d+)?)?", fwver):
+              raise SystemExit(f"unexpected frameworkVersion format: {fwver!r}")
           print(f"NEW_REV={rev}")
           print(f"NEW_DATE={date}")
           print(f"NEW_DART={dart}")
           print(f"NEW_DEVTOOLS={devtools}")
+          print(f"NEW_FWVER={fwver}")
           PY
 
       - name: Validate patches against probed HEAD (fail closed)
@@ -125,6 +132,7 @@ jobs:
           text = p.read_text(encoding="utf-8")
           for field, value in (
               ("dart_version", "${{ steps.meta.outputs.NEW_DART }}"),
+              ("framework_version", "${{ steps.meta.outputs.NEW_FWVER }}"),
               ("framework_revision", "${{ steps.meta.outputs.NEW_REV }}"),
               ("framework_commit_date", "${{ steps.meta.outputs.NEW_DATE }}"),
               ("devtools_version", "${{ steps.meta.outputs.NEW_DEVTOOLS }}"),

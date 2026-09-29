@@ -35,19 +35,45 @@ def snapshot_stamp(commit_date: str, revision: str) -> str:
     return f"{day}.{str(revision).strip()[:7]}"
 
 
-def deb_version(tag: str, pkg_rel: str, snapshot: str = "") -> str:
+def flutter_to_deb_upstream(framework_version: str) -> str:
+    """Translate a Flutter framework version to a Debian upstream version.
+
+    Flutter pre-releases use hyphens ('3.47.6-0.0.pre-123'); Debian uses
+    tilde so pre-releases sort below the final ('3.47.6~0.0.pre.123' <
+    '3.47.6') while still sorting above the previous stable ('3.47.5').
+    Returns '' for missing/'0.0.0-unknown' so callers can fall back.
+    """
+    fw = str(framework_version or "").strip()
+    if not fw or fw == "0.0.0-unknown":
+        return ""
+    if "-" in fw:
+        base, rest = fw.split("-", 1)
+        return f"{base}~{rest.replace('-', '.')}"
+    return fw
+
+
+def deb_version(tag: str, pkg_rel: str, snapshot: str = "", framework_version: str = "") -> str:
     """Debian-policy package version for a Flutter tag.
 
     dpkg requires the version to start with a digit. Semver tags pass
-    through as '{tag}-{rel}'; branch names such as 'main' get a '0~'
-    prefix with the snapshot stamp ('0~main.20260926.8db5526-1') so the
-    control file parses and every refresh sorts as a strict upgrade.
+    through as '{tag}-{rel}'. For branch names such as 'main', the
+    framework version from `flutter --version --machine` (e.g.
+    '3.47.6-0.0.pre-123', the next pre-release past the last stable per
+    flutter_tools version.dart) is translated to Debian tilde form and
+    suffixed with the snapshot stamp ('3.47.6~0.0.pre.123+main.20260926.
+    8db5526-1') so main snapshots sort above the last stable but below
+    the next final. Without a framework version it falls back to the
+    legacy '0~main.20260926.8db5526-1' (lower than any stable).
     """
     tag, rel, snap = str(tag), str(pkg_rel or "").strip(), str(snapshot or "").strip()
     if tag[:1].isdigit():
         base = tag
     else:
-        base = f"0~{tag}" + (f".{snap}" if snap else "")
+        fw = flutter_to_deb_upstream(framework_version)
+        if fw:
+            base = fw + (f"+main.{snap}" if snap else "")
+        else:
+            base = f"0~{tag}" + (f".{snap}" if snap else "")
     return f"{base}-{rel}" if rel else base
 
 

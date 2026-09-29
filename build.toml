@@ -1,5 +1,10 @@
 [flutter]
 tag = 'main'
+# Framework version from `flutter --version --machine` at the pinned
+# revision (next pre-release past the last stable per flutter_tools
+# version.dart, e.g. past 3.47.5 -> 3.47.6-0.0.pre). Translated to Debian
+# tilde form for the deb version so main snapshots sort above last stable.
+framework_version = '3.47.6-0.0.pre'
 repo = 'https://github.com/flutter/flutter'
 path = './flutter'
 dart_version = '3.14.0-271.0.dev'

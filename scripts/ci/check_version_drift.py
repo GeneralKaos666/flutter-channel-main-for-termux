@@ -5,6 +5,7 @@ Reads single source of truth version parameters from `build.toml` and verifies t
 all references in README, RELEASE_NOTES, agent guidance, guides, package.yaml,
 installer scripts, and build scripts match.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -41,7 +42,7 @@ INSTALLER_SCRIPTS = [
     "scripts/test/gh_e2e_test.sh",
 ]
 SEMVER_PATTERN = r"\d+\.\d+\.\d+"
-DEB_NAME_PATTERN = rf"flutter_(?:{SEMVER_PATTERN}(?:-[^/\s`\"\']+)?|(?:0~)?main(?:-[^/\s`\"\']+)?)_aarch64\.deb"
+DEB_NAME_PATTERN = rf"flutter_(?:{SEMVER_PATTERN}(?:~[^/\s`\"'_]+)?(?:\+[^/\s`\"'_]+)?(?:-[^/\s`\"\']+)?|(?:0~)?main(?:[.-][^/\s`\"\']+)?)_aarch64\.deb"
 
 
 def fail(msg: str) -> None:
@@ -51,25 +52,27 @@ def fail(msg: str) -> None:
 def replace_line_value(text: str, key: str, value: str) -> tuple[str, int]:
     return re.subn(
         rf'(?m)^(\s*(?:export\s+)?{re.escape(key)}\s*=\s*["\']?){SEMVER_PATTERN}(["\']?)',
-        rf'\g<1>{value}\g<2>',
+        rf"\g<1>{value}\g<2>",
         text,
     )
 
 
 def replace_default_var_value(text: str, key: str, value: str) -> tuple[str, int]:
-    return re.subn(rf'(\$\{{\s*{re.escape(key)}\s*:-){SEMVER_PATTERN}(}})', rf'\g<1>{value}\g<2>', text)
+    return re.subn(
+        rf"(\$\{{\s*{re.escape(key)}\s*:-){SEMVER_PATTERN}(}})", rf"\g<1>{value}\g<2>", text
+    )
 
 
 def replace_line_int_value(text: str, key: str, value: str) -> tuple[str, int]:
     return re.subn(
         rf'(?m)^(\s*(?:export\s+)?{re.escape(key)}\s*=\s*["\']?)\d+(["\']?)',
-        rf'\g<1>{value}\g<2>',
+        rf"\g<1>{value}\g<2>",
         text,
     )
 
 
 def replace_default_var_int_value(text: str, key: str, value: str) -> tuple[str, int]:
-    return re.subn(rf'(\$\{{\s*{re.escape(key)}\s*:-)\d+(}})', rf'\g<1>{value}\g<2>', text)
+    return re.subn(rf"(\$\{{\s*{re.escape(key)}\s*:-)\d+(}})", rf"\g<1>{value}\g<2>", text)
 
 
 def apply_version_autofix(cfg: dict[str, str], root_path: Path | None = None) -> list[str]:
@@ -79,10 +82,18 @@ def apply_version_autofix(cfg: dict[str, str], root_path: Path | None = None) ->
     asset_name = cfg["asset_name"]
     channel = cfg.get("channel", "stable")
     changed_files: list[str] = []
-    file_list = sorted(set(MARKDOWN_DOCS + GUIDANCE_DOCS + GUIDE_DOCS + INSTALLER_SCRIPTS + [
-        "scripts/install/post_install.sh",
-        "scripts/install/flutter_termux_doctor.sh",
-    ]))
+    file_list = sorted(
+        set(
+            MARKDOWN_DOCS
+            + GUIDANCE_DOCS
+            + GUIDE_DOCS
+            + INSTALLER_SCRIPTS
+            + [
+                "scripts/install/post_install.sh",
+                "scripts/install/flutter_termux_doctor.sh",
+            ]
+        )
+    )
 
     for rel_path in file_list:
         path = base_root / rel_path
@@ -98,9 +109,13 @@ def apply_version_autofix(cfg: dict[str, str], root_path: Path | None = None) ->
         )
         text = re.sub(DEB_NAME_PATTERN, asset_name, text)
         text = re.sub(rf"patches/{SEMVER_PATTERN}/", f"patches/{tag}/", text)
-        text = re.sub(r"Target:\s*aarch64,\s*Flutter\s+[0-9.]+", f"Target: aarch64, Flutter {tag}", text)
+        text = re.sub(
+            r"Target:\s*aarch64,\s*Flutter\s+[0-9.]+", f"Target: aarch64, Flutter {tag}", text
+        )
         text = re.sub(r"(?m)^(\|\s*Flutter tag\s*\|\s*`)[^`]+(`\s*\|)$", rf"\g<1>{tag}\g<2>", text)
-        text = re.sub(r"(?m)^(\|\s*Package\s*\|\s*`)[^`]+(`\s*\|)$", rf"\g<1>{asset_name}\g<2>", text)
+        text = re.sub(
+            r"(?m)^(\|\s*Package\s*\|\s*`)[^`]+(`\s*\|)$", rf"\g<1>{asset_name}\g<2>", text
+        )
         text = replace_line_value(text, "FLUTTER_VERSION", tag)[0]
         text = replace_line_int_value(text, "FLUTTER_PKG_REL", cfg.get("pkg_rel", ""))[0]
         text = replace_line_value(text, "RELEASE_TAG", release_tag)[0]
@@ -139,6 +154,7 @@ def load_build_config(root_path: Path | None = None) -> dict[str, str]:
     flutter_cfg = data.get("flutter", {})
     tag = flutter_cfg.get("tag", "")
     release_tag = flutter_cfg.get("release_tag", "") or str(tag)
+    framework_version = str(flutter_cfg.get("framework_version", "") or "")
     dart_version = flutter_cfg.get("dart_version", "")
     engine_commit = flutter_cfg.get("engine_commit", "")
     framework_revision = flutter_cfg.get("framework_revision", "")
@@ -149,16 +165,37 @@ def load_build_config(root_path: Path | None = None) -> dict[str, str]:
     asset_name = flutter_cfg.get("asset_name", "")
     package_cfg = data.get("package", {})
     pkg_rel = str(package_cfg.get("pkg_rel", "") or "")
-    # Mirror utils.deb_version (dpkg versions must start with a digit;
-    # branch tags like 'main' ship as '0~main-1'). Kept inline: this script
-    # runs with scripts/ci on sys.path, where `import utils` fails.
-    deb_tag = str(tag) if str(tag)[:1].isdigit() else f"0~{tag}"
-    # Mirror utils.snapshot_stamp so each main refresh renames the asset and
-    # dpkg/apt can never see a new snapshot as a downgrade.
-    stamp_day = framework_commit_date.split(" ")[0].replace("-", "") if framework_commit_date else ""
-    snapshot = f"{stamp_day}.{str(framework_revision)[:7]}" if stamp_day and framework_revision else ""
-    if snapshot and not str(tag)[:1].isdigit():
-        deb_tag = f"{deb_tag}.{snapshot}"
+
+    # Mirror utils.deb_version + utils.flutter_to_deb_upstream (dpkg versions
+    # must start with a digit; branch tags like 'main' use the framework
+    # version from `flutter --version --machine` in Debian tilde form plus
+    # the snapshot stamp, e.g. '3.47.6~0.0.pre+main.20260926.8db5526-1').
+    # Kept inline: this script runs with scripts/ci on sys.path, where
+    # `import utils` fails.
+    def _fw_upstream(fw: str) -> str:
+        fw = str(fw or "").strip()
+        if not fw or fw == "0.0.0-unknown":
+            return ""
+        if "-" in fw:
+            base, rest = fw.split("-", 1)
+            return f"{base}~{rest.replace('-', '.')}"
+        return fw
+
+    # Mirror utils.snapshot_stamp so each main refresh renames the asset.
+    stamp_day = (
+        framework_commit_date.split(" ")[0].replace("-", "") if framework_commit_date else ""
+    )
+    snapshot = (
+        f"{stamp_day}.{str(framework_revision)[:7]}" if stamp_day and framework_revision else ""
+    )
+    if str(tag)[:1].isdigit():
+        deb_tag = str(tag)
+    else:
+        fw_up = _fw_upstream(framework_version)
+        if fw_up:
+            deb_tag = fw_up + (f"+main.{snapshot}" if snapshot else "")
+        else:
+            deb_tag = f"0~{tag}" + (f".{snapshot}" if snapshot else "")
 
     if not tag:
         fail("build.toml [flutter] missing 'tag'")
@@ -166,6 +203,7 @@ def load_build_config(root_path: Path | None = None) -> dict[str, str]:
     return {
         "tag": str(tag),
         "release_tag": str(release_tag),
+        "framework_version": str(framework_version),
         "dart_version": str(dart_version),
         "engine_commit": str(engine_commit),
         "framework_revision": str(framework_revision),
@@ -174,7 +212,12 @@ def load_build_config(root_path: Path | None = None) -> dict[str, str]:
         "sha256": str(sha256),
         "size": str(size) if size else "",
         "pkg_rel": pkg_rel,
-        "asset_name": str(asset_name) or (f"flutter_{deb_tag}-{pkg_rel}_aarch64.deb" if pkg_rel else f"flutter_{deb_tag}_aarch64.deb"),
+        "asset_name": str(asset_name)
+        or (
+            f"flutter_{deb_tag}-{pkg_rel}_aarch64.deb"
+            if pkg_rel
+            else f"flutter_{deb_tag}_aarch64.deb"
+        ),
         "channel": "main" if str(tag) == "main" else "stable",
     }
 
@@ -192,7 +235,9 @@ def check_build_py(cfg: dict[str, str], root_path: Path | None = None) -> None:
         sync_text = sync_match.group(1)
         hardcoded = re.findall(rf'["\']{SEMVER_PATTERN}["\']', sync_text)
         if hardcoded:
-            fail(f"build.py sync() contains hardcoded Dart SDK version literal(s) {sorted(set(hardcoded))}; should use self.dart_version")
+            fail(
+                f"build.py sync() contains hardcoded Dart SDK version literal(s) {sorted(set(hardcoded))}; should use self.dart_version"
+            )
     else:
         fail("build.py missing sync() method")
 
@@ -204,16 +249,34 @@ def check_package_yaml(cfg: dict[str, str], root_path: Path | None = None) -> No
         return
     text = pkg_yaml.read_text(encoding="utf-8")
     if "Version: $package_version" not in text and "Version: $tag" not in text:
-        fail("package.yaml control block must specify 'Version: $package_version' or 'Version: $tag'")
-    manifest_keys = ("flutter_version", "framework_revision", "framework_commit_date",
-                     "engine_revision", "dart_version", "devtools_version",
-                     "ndk_version", "compile_sdk", "target_sdk")
+        fail(
+            "package.yaml control block must specify 'Version: $package_version' or 'Version: $tag'"
+        )
+    manifest_keys = (
+        "flutter_version",
+        "framework_revision",
+        "framework_commit_date",
+        "engine_revision",
+        "dart_version",
+        "devtools_version",
+        "ndk_version",
+        "compile_sdk",
+        "target_sdk",
+    )
     for key in manifest_keys:
         if f'"{key}"' not in text:
             fail(f"package.yaml: manifest resource missing JSON key '{key}'")
-    for var in ("$tag", "$framework_revision", "$framework_commit_date",
-                "$version", "$dart_version", "$devtools_version",
-                "$ndk_version", "$compile_sdk", "$target_sdk"):
+    for var in (
+        "$tag",
+        "$framework_revision",
+        "$framework_commit_date",
+        "$version",
+        "$dart_version",
+        "$devtools_version",
+        "$ndk_version",
+        "$compile_sdk",
+        "$target_sdk",
+    ):
         if var not in text:
             fail(f"package.yaml: manifest resource missing template var '{var}'")
     if "FLUTTER_PREBUILT_ENGINE_VERSION=" in text:
@@ -221,7 +284,9 @@ def check_package_yaml(cfg: dict[str, str], root_path: Path | None = None) -> No
         if match:
             found_eng = match.group(1).strip()
             if found_eng not in ("$version", cfg.get("engine_commit")):
-                fail(f"package.yaml: FLUTTER_PREBUILT_ENGINE_VERSION mismatch: found '{found_eng}', expected '$version' or '{cfg.get('engine_commit')}'")
+                fail(
+                    f"package.yaml: FLUTTER_PREBUILT_ENGINE_VERSION mismatch: found '{found_eng}', expected '$version' or '{cfg.get('engine_commit')}'"
+                )
 
 
 def check_markdown_docs(cfg: dict[str, str], root_path: Path | None = None) -> None:
@@ -242,21 +307,27 @@ def check_markdown_docs(cfg: dict[str, str], root_path: Path | None = None) -> N
         allowed_tag_vars = {"${TAG}", "$TAG", "${RELEASE_TAG}", "$RELEASE_TAG"}
         for found_tag in url_matches:
             if found_tag != release_tag and found_tag not in allowed_tag_vars:
-                fail(f"{rel_path}: download URL tag mismatch: found '{found_tag}', expected '{release_tag}'")
+                fail(
+                    f"{rel_path}: download URL tag mismatch: found '{found_tag}', expected '{release_tag}'"
+                )
 
         # Check current Dart version reference in README (release notes legitimately
         # reference historical dart versions, so they are not scanned here)
         if rel_path == "README.md":
             for dart_match in re.finditer(rf"Dart\s+({SEMVER_PATTERN})", text):
                 if dart_match.group(1) != dart_version:
-                    fail(f"{rel_path}: Dart version reference mismatch: found '{dart_match.group(1)}', expected '{dart_version}'")
+                    fail(
+                        f"{rel_path}: Dart version reference mismatch: found '{dart_match.group(1)}', expected '{dart_version}'"
+                    )
 
         # Check package size if present
         if cfg.get("size") and "Size |" in text:
             formatted_size = f"{int(cfg['size']):,}"
             m = re.search(r"Size \|\s*`?([0-9,]+)`?", text)
             if m and m.group(1) != formatted_size:
-                fail(f"{rel_path}: Package size mismatch: found '{m.group(1)}', expected '{formatted_size}'")
+                fail(
+                    f"{rel_path}: Package size mismatch: found '{m.group(1)}', expected '{formatted_size}'"
+                )
 
         # We can also check if engine commit matches
         if engine_commit and "Engine | [" in text:
@@ -279,17 +350,25 @@ def check_agent_guidance_docs(cfg: dict[str, str], root_path: Path | None = None
         if target_match:
             found_target_ver = target_match.group(1)
             if found_target_ver != tag:
-                fail(f"{rel_path}: Target Flutter version mismatch: found '{found_target_ver}', expected '{tag}'")
+                fail(
+                    f"{rel_path}: Target Flutter version mismatch: found '{found_target_ver}', expected '{tag}'"
+                )
 
         # Check version-specific patch path diagram references
         patch_dir_matches = re.findall(r"patches/([0-9.]+)/", text)
         for pdir in patch_dir_matches:
             if pdir != tag:
-                fail(f"{rel_path}: Patch directory diagram mismatch: found 'patches/{pdir}/', expected 'patches/{tag}/'")
+                fail(
+                    f"{rel_path}: Patch directory diagram mismatch: found 'patches/{pdir}/', expected 'patches/{tag}/'"
+                )
 
-        # Check adb push deb file references
-        adb_deb_matches = re.findall(r"flutter_[0-9.]+_aarch64\.deb", text)
-        adb_deb_matches += re.findall(r"flutter_(?:0~)?main(?:-[^/\s`\"']+)?_aarch64\.deb", text)
+        # Check adb push deb file references (stable + legacy main + tilde/plus
+        # framework-version snapshots such as 3.47.6~0.0.pre+main.<snap>-1).
+        adb_deb_matches = re.findall(
+            r"flutter_\d+\.\d+\.\d+(?:~[^/\s`\"']+)?(?:\+[^/\s`\"']+)?(?:-[^/\s`\"']+)?_aarch64\.deb",
+            text,
+        )
+        adb_deb_matches += re.findall(r"flutter_(?:0~)?main(?:[.-][^/\s`\"']+)?_aarch64\.deb", text)
         for deb in adb_deb_matches:
             if deb != asset_name:
                 fail(f"{rel_path}: Deb filename mismatch: found '{deb}', expected '{asset_name}'")
@@ -311,34 +390,53 @@ def check_guide_docs(cfg: dict[str, str], root_path: Path | None = None) -> None
         if "Flutter tag |" in text:
             m = re.search(r"Flutter tag \|\s*`([^`]+)`", text)
             if m and m.group(1) != tag:
-                fail(f"{rel_path}: Flutter tag mismatch in table: found '{m.group(1)}', expected '{tag}'")
+                fail(
+                    f"{rel_path}: Flutter tag mismatch in table: found '{m.group(1)}', expected '{tag}'"
+                )
         if "Engine revision |" in text and engine_commit:
             m = re.search(r"Engine revision \|\s*`([^`]+)`", text)
             if m and m.group(1) != engine_commit:
-                fail(f"{rel_path}: Engine revision mismatch in table: found '{m.group(1)}', expected '{engine_commit}'")
+                fail(
+                    f"{rel_path}: Engine revision mismatch in table: found '{m.group(1)}', expected '{engine_commit}'"
+                )
         if "Package |" in text:
             m = re.search(r"Package \|\s*`([^`]+)`", text)
             if m and m.group(1) != asset_name:
-                fail(f"{rel_path}: Package mismatch in table: found '{m.group(1)}', expected '{asset_name}'")
+                fail(
+                    f"{rel_path}: Package mismatch in table: found '{m.group(1)}', expected '{asset_name}'"
+                )
         if "SHA256 |" in text and sha256:
             m = re.search(r"SHA256 \|\s*`([^`]+)`", text)
             if m and m.group(1).lower() != sha256.lower():
-                fail(f"{rel_path}: SHA256 mismatch in table: found '{m.group(1)}', expected '{sha256}'")
+                fail(
+                    f"{rel_path}: SHA256 mismatch in table: found '{m.group(1)}', expected '{sha256}'"
+                )
 
-        # Check package deb mentions across all guides
-        for deb_match in re.finditer(r"flutter_(\d+\.\d+\.\d+)_aarch64\.deb", text):
-            found_tag = deb_match.group(1)
-            if found_tag != tag:
-                fail(f"{rel_path}: Package deb name version mismatch: found '{deb_match.group(0)}', expected '{asset_name}'")
-        for main_match in re.finditer(r"flutter_(?:0~)?main(?:-[^/\s`\"']+)?_aarch64\.deb", text):
+        # Check package deb mentions across all guides (stable + legacy main +
+        # tilde/plus framework-version snapshots).
+        for deb_match in re.finditer(
+            r"flutter_\d+\.\d+\.\d+(?:~[^/\s`\"']+)?(?:\+[^/\s`\"']+)?(?:-[^/\s`\"']+)?_aarch64\.deb",
+            text,
+        ):
+            if deb_match.group(0) != asset_name:
+                fail(
+                    f"{rel_path}: Package deb name version mismatch: found '{deb_match.group(0)}', expected '{asset_name}'"
+                )
+        for main_match in re.finditer(
+            r"flutter_(?:0~)?main(?:[.-][^/\s`\"']+)?_aarch64\.deb", text
+        ):
             if main_match.group(0) != asset_name:
-                fail(f"{rel_path}: Package deb name version mismatch: found '{main_match.group(0)}', expected '{asset_name}'")
+                fail(
+                    f"{rel_path}: Package deb name version mismatch: found '{main_match.group(0)}', expected '{asset_name}'"
+                )
 
         # Check patch paths across all guides
         for patch_match in re.finditer(r"patches/(\d+\.\d+\.\d+)/", text):
             found_patch_ver = patch_match.group(1)
             if found_patch_ver != tag:
-                fail(f"{rel_path}: Patch path version mismatch: found '{patch_match.group(0)}', expected 'patches/{tag}/'")
+                fail(
+                    f"{rel_path}: Patch path version mismatch: found '{patch_match.group(0)}', expected 'patches/{tag}/'"
+                )
 
 
 def check_installer_scripts(cfg: dict[str, str], root_path: Path | None = None) -> None:
@@ -357,28 +455,38 @@ def check_installer_scripts(cfg: dict[str, str], root_path: Path | None = None) 
             found_ver = ver_match.group(1).lstrip("v")
             if found_ver != tag and not found_ver.startswith("${"):
                 fail(f"{rel_path}: FLUTTER_VERSION mismatch: found '{found_ver}', expected '{tag}'")
-        ver_default_match = re.search(rf'\$\{{\s*FLUTTER_VERSION\s*:-\s*({SEMVER_PATTERN})\s*}}', text)
+        ver_default_match = re.search(
+            rf"\$\{{\s*FLUTTER_VERSION\s*:-\s*({SEMVER_PATTERN})\s*}}", text
+        )
         if ver_default_match:
             found_ver = ver_default_match.group(1)
             if found_ver != tag:
-                fail(f"{rel_path}: FLUTTER_VERSION default mismatch: found '{found_ver}', expected '{tag}'")
+                fail(
+                    f"{rel_path}: FLUTTER_VERSION default mismatch: found '{found_ver}', expected '{tag}'"
+                )
 
         tag_match = re.search(r'RELEASE_TAG=["\']?([^"\':\s\n}]+)', text)
         if tag_match:
             found_tag = tag_match.group(1)
             if found_tag != release_tag and not found_tag.startswith("${"):
-                fail(f"{rel_path}: RELEASE_TAG mismatch: found '{found_tag}', expected '{release_tag}'")
-        tag_default_match = re.search(rf'\$\{{\s*RELEASE_TAG\s*:-\s*({SEMVER_PATTERN})\s*}}', text)
+                fail(
+                    f"{rel_path}: RELEASE_TAG mismatch: found '{found_tag}', expected '{release_tag}'"
+                )
+        tag_default_match = re.search(rf"\$\{{\s*RELEASE_TAG\s*:-\s*({SEMVER_PATTERN})\s*}}", text)
         if tag_default_match:
             found_tag = tag_default_match.group(1)
             if found_tag != release_tag:
-                fail(f"{rel_path}: RELEASE_TAG default mismatch: found '{found_tag}', expected '{release_tag}'")
+                fail(
+                    f"{rel_path}: RELEASE_TAG default mismatch: found '{found_tag}', expected '{release_tag}'"
+                )
 
-        sha_match = re.search(r'EXPECTED_SHA256=.*', text)
+        sha_match = re.search(r"EXPECTED_SHA256=.*", text)
         if sha_match and cfg.get("sha256"):
             line = sha_match.group(0)
             if cfg["sha256"] not in line:
-                fail(f"{rel_path}: EXPECTED_SHA256 line does not contain expected hash '{cfg['sha256']}': {line}")
+                fail(
+                    f"{rel_path}: EXPECTED_SHA256 line does not contain expected hash '{cfg['sha256']}': {line}"
+                )
 
 
 def check_post_install_script(cfg: dict[str, str], root_path: Path | None = None) -> None:
@@ -398,11 +506,17 @@ def check_post_install_script(cfg: dict[str, str], root_path: Path | None = None
     if dart_ver and f'CANONICAL_DART_VER="{dart_ver}"' not in text:
         fail(f"scripts/install/post_install.sh: CANONICAL_DART_VER mismatch, expected '{dart_ver}'")
     if fw_rev and f'CANONICAL_FRAMEWORK_REV="{fw_rev}"' not in text:
-        fail(f"scripts/install/post_install.sh: CANONICAL_FRAMEWORK_REV mismatch, expected '{fw_rev}'")
+        fail(
+            f"scripts/install/post_install.sh: CANONICAL_FRAMEWORK_REV mismatch, expected '{fw_rev}'"
+        )
     if fw_date and f'CANONICAL_FRAMEWORK_DATE="{fw_date}"' not in text:
-        fail(f"scripts/install/post_install.sh: CANONICAL_FRAMEWORK_DATE mismatch, expected '{fw_date}'")
+        fail(
+            f"scripts/install/post_install.sh: CANONICAL_FRAMEWORK_DATE mismatch, expected '{fw_date}'"
+        )
     if dev_ver and f'CANONICAL_DEVTOOLS_VER="{dev_ver}"' not in text:
-        fail(f"scripts/install/post_install.sh: CANONICAL_DEVTOOLS_VER mismatch, expected '{dev_ver}'")
+        fail(
+            f"scripts/install/post_install.sh: CANONICAL_DEVTOOLS_VER mismatch, expected '{dev_ver}'"
+        )
     chan = cfg.get("channel", "stable")
     if f'CANONICAL_CHANNEL="{chan}"' not in text:
         fail(f"scripts/install/post_install.sh: CANONICAL_CHANNEL mismatch, expected '{chan}'")
@@ -448,8 +562,12 @@ def run_checks(root_path: Path | None = None) -> list[str]:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Check and optionally auto-fix version drift from build.toml")
-    parser.add_argument("--fix", action="store_true", help="Rewrite drift-prone version references before checking")
+    parser = argparse.ArgumentParser(
+        description="Check and optionally auto-fix version drift from build.toml"
+    )
+    parser.add_argument(
+        "--fix", action="store_true", help="Rewrite drift-prone version references before checking"
+    )
     return parser.parse_args()
 
 

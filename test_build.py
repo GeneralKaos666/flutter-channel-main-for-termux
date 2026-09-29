@@ -300,6 +300,7 @@ class PackageManifestTest(unittest.TestCase):
             utils.snapshot_stamp(
                 flutter.get("framework_commit_date", ""), flutter.get("framework_revision", "")
             ),
+            flutter.get("framework_version", ""),
         )
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -323,6 +324,40 @@ class PackageManifestTest(unittest.TestCase):
 
             control = pkg.gen_control()["src"].decode("utf-8")
             self.assertIn(f"Version: {package_version}", control)
+
+
+class FrameworkVersionTest(unittest.TestCase):
+    def test_flutter_to_deb_upstream_translates_prerelease(self):
+        self.assertEqual(utils.flutter_to_deb_upstream("3.47.6-0.0.pre-123"), "3.47.6~0.0.pre.123")
+        self.assertEqual(utils.flutter_to_deb_upstream("3.47.6-0.0.pre"), "3.47.6~0.0.pre")
+        self.assertEqual(utils.flutter_to_deb_upstream("3.47.5"), "3.47.5")
+        self.assertEqual(utils.flutter_to_deb_upstream(""), "")
+        self.assertEqual(utils.flutter_to_deb_upstream("0.0.0-unknown"), "")
+
+    def test_deb_version_main_uses_framework_version(self):
+        self.assertEqual(
+            utils.deb_version("main", "1", "20260926.8db5526", "3.47.6-0.0.pre"),
+            "3.47.6~0.0.pre+main.20260926.8db5526-1",
+        )
+
+    def test_deb_version_main_falls_back_without_framework_version(self):
+        self.assertEqual(
+            utils.deb_version("main", "1", "20260926.8db5526", ""),
+            "0~main.20260926.8db5526-1",
+        )
+
+    def test_deb_version_stable_ignores_framework_version(self):
+        self.assertEqual(
+            utils.deb_version("3.47.5", "1", "20260926.8db5526", "3.47.6-0.0.pre"),
+            "3.47.5-1",
+        )
+
+    def test_main_snapshot_sorts_above_last_stable(self):
+        version = utils.deb_version("main", "1", "20260926.8db5526", "3.47.6-0.0.pre")
+        self.assertTrue(version.startswith("3.47.6"))
+        self.assertIn("~", version)
+        self.assertIn("+main.", version)
+        self.assertNotEqual(version, utils.deb_version("main", "1", "20260926.8db5526", ""))
 
 
 class EngineVersionTest(unittest.TestCase):

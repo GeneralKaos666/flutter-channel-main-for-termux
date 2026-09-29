@@ -179,7 +179,10 @@ configure_ndk_clang() {
 		if [ "$target" = "clang++" ]; then
 			local clang_ver=""
 			for c in "$PREBUILT/linux-x86_64/bin"/clang-[0-9]*; do
-				if [ -x "$c" ]; then clang_ver="$(basename "$c")"; break; fi
+				if [ -x "$c" ]; then
+					clang_ver="$(basename "$c")"
+					break
+				fi
 			done
 			[ -z "$clang_ver" ] && clang_ver="clang"
 			# Fix circular symlink
@@ -452,12 +455,31 @@ mkdir -p "$WORK_DIR/apt_staging"
 
 # Pre-download and verify all packages (Staging Phase)
 echo "Pre-downloading and verifying all packages..."
-# dpkg versions must start with a digit: branch tags like 'main' ship as '0~main'.
+# dpkg versions must start with a digit. Stable tags pass through; main
+# snapshots prefer the framework version in Debian tilde form plus snapshot
+# (3.47.6~0.0.pre+main.<snap>), falling back to legacy 0~main.<snap>.
 _DEB_TAG="${FLUTTER_VERSION}"
-case "${_DEB_TAG}" in [0-9]*) ;; *) _DEB_TAG="0~${_DEB_TAG}${FLUTTER_SNAPSHOT:+.${FLUTTER_SNAPSHOT}}" ;; esac
+case "${_DEB_TAG}" in
+[0-9]*) ;;
+*)
+	if [ -n "${FLUTTER_FRAMEWORK_VERSION:-}" ] && [ "${FLUTTER_FRAMEWORK_VERSION}" != "0.0.0-unknown" ]; then
+		_FW_UPSTREAM="$(printf '%s' "${FLUTTER_FRAMEWORK_VERSION}" | sed -e 's/-/~/' -e 's/-/./g')"
+		if [ -n "${_FW_UPSTREAM}" ]; then
+			if [ -n "${FLUTTER_SNAPSHOT:-}" ]; then
+				_DEB_TAG="${_FW_UPSTREAM}+main.${FLUTTER_SNAPSHOT}"
+			else
+				_DEB_TAG="${_FW_UPSTREAM}"
+			fi
+		else
+			_DEB_TAG="0~${_DEB_TAG}${FLUTTER_SNAPSHOT:+.${FLUTTER_SNAPSHOT}}"
+		fi
+	else
+		_DEB_TAG="0~${_DEB_TAG}${FLUTTER_SNAPSHOT:+.${FLUTTER_SNAPSHOT}}"
+	fi
+	;;
+esac
 FLUTTER_DEB_NAME="${FLUTTER_DEB_NAME:-flutter_${_DEB_TAG}-${FLUTTER_PKG_REL:-1}_aarch64.deb}"
 FLUTTER_DEB_URL="https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/${RELEASE_TAG}/${FLUTTER_DEB_NAME}"
-
 
 # Snapshot existing package state for rollback
 FLUTTER_WAS_INSTALLED=false

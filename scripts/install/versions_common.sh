@@ -6,18 +6,40 @@
 
 # Flutter release (matches [flutter] tag in build.toml)
 export FLUTTER_VERSION="main"
+# Framework version from `flutter --version --machine` at the pinned revision
+# (matches [flutter] framework_version in build.toml). Translated to Debian
+# tilde form so main snapshots sort above the last stable but below the next
+# final (3.47.6~0.0.pre+main.<snap>-1 > 3.47.5-1, < 3.47.6-1).
+export FLUTTER_FRAMEWORK_VERSION="3.47.6-0.0.pre"
 export FLUTTER_PKG_REL="${FLUTTER_PKG_REL:-1}"
 export FLUTTER_SNAPSHOT="20260926.8db5526"
 export RELEASE_TAG="main"
 # No hosted main-channel release exists yet: refresh after the first main
 # build or pass FLUTTER_DEB_SHA256. Installers fail closed until then.
 export EXPECTED_SHA256="TBD-refresh-after-first-main-build"
-# dpkg versions must start with a digit; each main snapshot stamps the date+hash
-# (0~main.YYYYMMDD.hash) so installs always move forward, never downgrade.
+# dpkg versions must start with a digit. Stable tags pass through; main
+# snapshots use the framework version in Debian tilde form plus the snapshot
+# stamp (3.47.6~0.0.pre+main.YYYYMMDD.hash) so installs move forward from the
+# last stable and never block the next final as a downgrade.
 _DEB_TAG="${FLUTTER_VERSION}"
 case "${_DEB_TAG}" in
-  [0-9]*) ;;
-  *) _DEB_TAG="0~${_DEB_TAG}${FLUTTER_SNAPSHOT:+.${FLUTTER_SNAPSHOT}}" ;;
+[0-9]*) ;;
+*)
+	if [ -n "${FLUTTER_FRAMEWORK_VERSION:-}" ] && [ "${FLUTTER_FRAMEWORK_VERSION}" != "0.0.0-unknown" ]; then
+		_FW_UPSTREAM="$(printf '%s' "${FLUTTER_FRAMEWORK_VERSION}" | sed -e 's/-/~/' -e 's/-/./g')"
+		if [ -n "${_FW_UPSTREAM}" ]; then
+			if [ -n "${FLUTTER_SNAPSHOT:-}" ]; then
+				_DEB_TAG="${_FW_UPSTREAM}+main.${FLUTTER_SNAPSHOT}"
+			else
+				_DEB_TAG="${_FW_UPSTREAM}"
+			fi
+		else
+			_DEB_TAG="0~${_DEB_TAG}${FLUTTER_SNAPSHOT:+.${FLUTTER_SNAPSHOT}}"
+		fi
+	else
+		_DEB_TAG="0~${_DEB_TAG}${FLUTTER_SNAPSHOT:+.${FLUTTER_SNAPSHOT}}"
+	fi
+	;;
 esac
 export FLUTTER_DEB_NAME="flutter_${_DEB_TAG}-${FLUTTER_PKG_REL}_aarch64.deb"
 

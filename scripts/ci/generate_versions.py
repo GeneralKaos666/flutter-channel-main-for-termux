@@ -43,12 +43,17 @@ def replacements(cfg: dict) -> list[tuple[str, str]]:
     android = cfg.get("android", {})
     installer = cfg.get("installer", {})
     tag = str(flutter.get("tag", ""))
+    fw_ver = str(flutter.get("framework_version", "") or "")
     fw_date = str(flutter.get("framework_commit_date", "") or "")
     fw_rev = str(flutter.get("framework_revision", "") or "")
     stamp_day = fw_date.split(" ")[0].replace("-", "") if fw_date else ""
     snapshot = f"{stamp_day}.{fw_rev[:7]}" if stamp_day and fw_rev else ""
     return [
         (r'^export FLUTTER_VERSION="[^"]*"', f'export FLUTTER_VERSION="{tag}"'),
+        (
+            r'^export FLUTTER_FRAMEWORK_VERSION="[^"]*"',
+            f'export FLUTTER_FRAMEWORK_VERSION="{fw_ver}"',
+        ),
         (r'^export RELEASE_TAG="[^"]*"', f'export RELEASE_TAG="{tag}"'),
         (r'^export FLUTTER_SNAPSHOT="[^"]*"', f'export FLUTTER_SNAPSHOT="{snapshot}"'),
         (r'^export NDK_VERSION="[^"]*"', f'export NDK_VERSION="{ndk.get("version", "")}"'),

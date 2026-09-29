@@ -128,9 +128,9 @@ back to **Build deb (self-hosted)** (`.github/workflows/build-deb.yml`):
 If `gclient` is missing, you bootstrap `depot_tools` in that self-hosted workflow,
 then run the same patched pipeline (see above) before uploading:
 
-- `flutter_0~main.20260926.8db5526-1_aarch64.deb`
-- `flutter_0~main.20260926.8db5526-1_aarch64.deb.sha256`
-- `flutter_0~main.20260926.8db5526-1_aarch64.deb.size.txt`
+- `flutter_3.47.6~0.0.pre+main.20260926.8db5526-1_aarch64.deb`
+- `flutter_3.47.6~0.0.pre+main.20260926.8db5526-1_aarch64.deb.sha256`
+- `flutter_3.47.6~0.0.pre+main.20260926.8db5526-1_aarch64.deb.size.txt`
 
 ## Release policy
 
@@ -161,7 +161,7 @@ No hosted main-channel release exists yet. After the first main build
 publishes, test that release asset with the default input:
 
 ```text
-deb_url: https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/main/flutter_0~main.20260926.8db5526-1_aarch64.deb
+deb_url: https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/main/flutter_3.47.6~0.0.pre+main.20260926.8db5526-1_aarch64.deb
 expected_sha256: TBD (refresh after the first main build; installers fail closed until then)
 ```
 
@@ -268,5 +268,5 @@ Manual Windows-to-tablet smoke:
 ```powershell
 scripts/device/run_termux_smoke.ps1 `
   -AdbPath "C:\Users\aa223\AppData\Local\Android\Sdk\platform-tools\adb.exe" `
-  -DebUrl "https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/main/flutter_0~main.20260926.8db5526-1_aarch64.deb"
+  -DebUrl "https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/main/flutter_3.47.6~0.0.pre+main.20260926.8db5526-1_aarch64.deb"
 ```

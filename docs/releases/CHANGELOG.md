@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tracking main
 - Moved `build.toml [flutter] tag` to `main` with Dart `3.14.0-271.0.dev`, framework `8db5526` (`2026-09-26 15:45:14 -0700`), DevTools `2.61.0-dev.0`.
-- Snapshot-stamped the deb as `flutter_0~main.20260926.8db5526-1_aarch64.deb` via `utils.deb_version()` / `snapshot_stamp()` so each refresh sorts as an upgrade.
+- Deb version follows the framework version from `flutter --version --machine` in Debian tilde form plus the snapshot stamp (`flutter_3.47.6~0.0.pre+main.20260926.8db5526-1_aarch64.deb` via `utils.deb_version()` / `flutter_to_deb_upstream()` / `snapshot_stamp()`) so main snapshots sort above the last stable (`3.47.5`) but below the next final, and each refresh sorts as an upgrade.
 - No hosted main-channel release exists yet; size/SHA stay `TBD` and installers fail closed until the first main build publishes.
 - Documented the refresh loop (`clone --force` → verify patches → pin versions → drift `--fix` → full verification) in `BUILD_GUIDE.md`.
 - Daily gated autobuild: `main-refresh.yml` (09:00 UTC) validates patches fail-closed before pushing pins, and `build.yml` (12:00 UTC `gate` job) builds only when pins equal upstream HEAD and the deb is unreleased: no new tag until conflicts are resolved; manual dispatch still always builds.

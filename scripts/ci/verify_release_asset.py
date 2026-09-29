@@ -40,9 +40,6 @@ BUILD_CRITICAL_FILES = (
 )
 
 
-
-
-
 def normalize_member_path(p: str) -> str:
     """Normalize tar member / inventory path by stripping leading './' and trailing '/' without clobbering whitespace or leading dots."""
     s = p
@@ -122,13 +119,17 @@ def parse_inventory_entries(inventory_text: str) -> list[str]:
             path_str, link_target = path_part.split(" -> ", 1)
             norm_path = normalize_member_path(path_str)
             if norm_path:
-                entries.append(f"{mode_str} {owner_str} {size_str} {time_part} {norm_path} -> {link_target}")
+                entries.append(
+                    f"{mode_str} {owner_str} {size_str} {time_part} {norm_path} -> {link_target}"
+                )
         elif " link to " in path_part:
             path_str, link_target = path_part.split(" link to ", 1)
             norm_path = normalize_member_path(path_str)
             hardlink_target = link_target[2:] if link_target.startswith("./") else link_target
             if norm_path:
-                entries.append(f"{mode_str} {owner_str} {size_str} {time_part} {norm_path} link to {hardlink_target}")
+                entries.append(
+                    f"{mode_str} {owner_str} {size_str} {time_part} {norm_path} link to {hardlink_target}"
+                )
         else:
             norm_path = normalize_member_path(path_part)
             if norm_path:
@@ -149,9 +150,11 @@ def extract_deb_member_paths(deb_path, first_inventory_time: str | None = None) 
             parts = first_inventory_time.split()
             if len(parts) == 2:
                 time_fmt = "%Y-%m-%d %H:%M:%S" if len(parts[1]) == 8 else "%Y-%m-%d %H:%M"
-                has_seconds = (len(parts[1]) == 8)
+                has_seconds = len(parts[1]) == 8
                 try:
-                    inv_dt = datetime.datetime.strptime(first_inventory_time, time_fmt).replace(tzinfo=datetime.UTC)
+                    inv_dt = datetime.datetime.strptime(first_inventory_time, time_fmt).replace(
+                        tzinfo=datetime.UTC
+                    )
                     inv_epoch = int(inv_dt.timestamp())
                 except ValueError:
                     inv_epoch = None
@@ -209,12 +212,22 @@ def extract_deb_member_paths(deb_path, first_inventory_time: str | None = None) 
                             time_part = "1970-01-01 00:00"
 
                         if member.issym() and member.linkname:
-                            entries.append(f"{mode_str} {owner_str} {member_size_str} {time_part} {p} -> {member.linkname}")
+                            entries.append(
+                                f"{mode_str} {owner_str} {member_size_str} {time_part} {p} -> {member.linkname}"
+                            )
                         elif member.islnk() and member.linkname:
-                            hardlink_target = member.linkname[2:] if member.linkname.startswith("./") else member.linkname
-                            entries.append(f"{mode_str} {owner_str} {member_size_str} {time_part} {p} link to {hardlink_target}")
+                            hardlink_target = (
+                                member.linkname[2:]
+                                if member.linkname.startswith("./")
+                                else member.linkname
+                            )
+                            entries.append(
+                                f"{mode_str} {owner_str} {member_size_str} {time_part} {p} link to {hardlink_target}"
+                            )
                         else:
-                            entries.append(f"{mode_str} {owner_str} {member_size_str} {time_part} {p}")
+                            entries.append(
+                                f"{mode_str} {owner_str} {member_size_str} {time_part} {p}"
+                            )
                 return entries
             else:
                 skip = size + (1 if size % 2 == 1 else 0)
@@ -230,10 +243,15 @@ def validate_sha256_format(sha_str: str | None) -> str:
     if not cleaned:
         raise ValueError("SHA256 checksum string is empty")
     if sha_str != cleaned:
-        raise ValueError(f"SHA256 checksum must not contain leading/trailing whitespace or newline: '{sha_str}'")
+        raise ValueError(
+            f"SHA256 checksum must not contain leading/trailing whitespace or newline: '{sha_str}'"
+        )
     if not SHA256_HEX_REGEX.match(cleaned):
-        raise ValueError(f"Invalid SHA256 hex format: '{cleaned}' (must be exactly 64 hex characters)")
+        raise ValueError(
+            f"Invalid SHA256 hex format: '{cleaned}' (must be exactly 64 hex characters)"
+        )
     return cleaned.lower()
+
 
 def verify_checksum_file(file_path: str | Path) -> str:
     path = Path(file_path)
@@ -245,17 +263,21 @@ def verify_checksum_file(file_path: str | Path) -> str:
     first_token = content.split()[0]
     return validate_sha256_format(first_token)
 
+
 def get_tomllib():
     try:
         import tomllib
+
         return tomllib
     except ImportError:
         try:
             import tomli as tomllib
+
             return tomllib
         except ImportError:
             print("Error: tomllib or tomli is required to parse build.toml")
             sys.exit(1)
+
 
 def main():
     tomllib = get_tomllib()
@@ -276,13 +298,23 @@ def main():
     expected_package_version = None
     default_asset = None
     if expected_tag:
-        deb_tag = str(expected_tag) if str(expected_tag)[:1].isdigit() else f"0~{expected_tag}"
+        fw_ver = str(flutter_cfg.get("framework_version", "") or "").strip()
+        fw_up = ""
+        if fw_ver and fw_ver != "0.0.0-unknown" and "-" in fw_ver:
+            _base, _rest = fw_ver.split("-", 1)
+            fw_up = f"{_base}~{_rest.replace('-', '.')}"
+        elif fw_ver and fw_ver != "0.0.0-unknown":
+            fw_up = fw_ver
         fw_date = str(flutter_cfg.get("framework_commit_date", "") or "")
         fw_rev = str(flutter_cfg.get("framework_revision", "") or "")
         stamp_day = fw_date.split(" ")[0].replace("-", "") if fw_date else ""
         snapshot = f"{stamp_day}.{fw_rev[:7]}" if stamp_day and fw_rev else ""
-        if snapshot and not str(expected_tag)[:1].isdigit():
-            deb_tag = f"{deb_tag}.{snapshot}"
+        if str(expected_tag)[:1].isdigit():
+            deb_tag = str(expected_tag)
+        elif fw_up:
+            deb_tag = fw_up + (f"+main.{snapshot}" if snapshot else "")
+        else:
+            deb_tag = f"0~{expected_tag}" + (f".{snapshot}" if snapshot else "")
         expected_package_version = f"{deb_tag}-{pkg_rel}" if pkg_rel else str(deb_tag)
         default_asset = f"flutter_{expected_package_version}_aarch64.deb"
     expected_asset = flutter_cfg.get("asset_name") or default_asset
@@ -328,7 +360,9 @@ def main():
             event_data = json.load(f)
         release_tag = event_data.get("release", {}).get("tag_name")
         if release_tag and release_tag != expected_tag:
-            print(f"Error: Release event tag '{release_tag}' does not match manifest tag '{expected_tag}'")
+            print(
+                f"Error: Release event tag '{release_tag}' does not match manifest tag '{expected_tag}'"
+            )
             sys.exit(1)
         target_tag = release_tag
 
@@ -357,22 +391,33 @@ def main():
                         sha256_hash.update(byte_block)
                 actual_sha256 = sha256_hash.hexdigest().lower()
                 if actual_sha256 != expected_sha256.lower():
-                    print(f"Error: Local file SHA256 mismatch in lightweight check mode!\nExpected: {expected_sha256}\nActual:   {actual_sha256}")
+                    print(
+                        f"Error: Local file SHA256 mismatch in lightweight check mode!\nExpected: {expected_sha256}\nActual:   {actual_sha256}"
+                    )
                     sys.exit(1)
                 print(f"LIGHTWEIGHT_CHECK: Local file SHA256 verified ({actual_sha256}).")
-                print(f"Release manifest OK: {target_tag} | {expected_asset} | {actual_size} bytes | SHA256 format verified: {expected_sha256[:8]}...")
+                print(
+                    f"Release manifest OK: {target_tag} | {expected_asset} | {actual_size} bytes | SHA256 format verified: {expected_sha256[:8]}..."
+                )
             else:
-                print(f"LIGHTWEIGHT_CHECK: Local file present ({actual_size} bytes); no sha256 declared in build.toml, skipped hash verification.")
+                print(
+                    f"LIGHTWEIGHT_CHECK: Local file present ({actual_size} bytes); no sha256 declared in build.toml, skipped hash verification."
+                )
             if expected_size is not None and actual_size != expected_size:
-                print(f"Error: Local file size mismatch in lightweight check mode!\nExpected: {expected_size}\nActual:   {actual_size}")
+                print(
+                    f"Error: Local file size mismatch in lightweight check mode!\nExpected: {expected_size}\nActual:   {actual_size}"
+                )
                 sys.exit(1)
         else:
             if expected_sha256:
-                print(f"LIGHTWEIGHT_CHECK enabled (no local file present): Verified manifest structure and valid SHA256 hex syntax ({expected_sha256[:8]}...). Skipping network API lookup.")
+                print(
+                    f"LIGHTWEIGHT_CHECK enabled (no local file present): Verified manifest structure and valid SHA256 hex syntax ({expected_sha256[:8]}...). Skipping network API lookup."
+                )
             else:
-                print(f"LIGHTWEIGHT_CHECK enabled (no local file present): Verified manifest structure (asset {expected_asset}). Skipping network API lookup.")
+                print(
+                    f"LIGHTWEIGHT_CHECK enabled (no local file present): Verified manifest structure (asset {expected_asset}). Skipping network API lookup."
+                )
         sys.exit(0)
-
 
     # 4. Retrieve release info from GitHub API via urllib
     gh_token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
@@ -418,7 +463,9 @@ def main():
     companion_available = all(aux_name in assets for aux_name in aux_assets)
     if not companion_available:
         # FFT-style single-asset release: verify the primary .deb only.
-        print("Release contains no companion assets (single-asset release); verifying primary asset only.")
+        print(
+            "Release contains no companion assets (single-asset release); verifying primary asset only."
+        )
         digest = (asset.get("digest") or "").lower()
         actual_size = asset.get("size")
         if actual_size is None or not isinstance(actual_size, int) or actual_size <= 0:
@@ -443,13 +490,17 @@ def main():
                     sha256_hash.update(byte_block)
             actual_sha256 = sha256_hash.hexdigest().lower()
             if actual_sha256 != expected_sha256.lower():
-                print(f"Error: Local SHA256 mismatch!\nExpected: {expected_sha256}\nActual:   {actual_sha256}")
+                print(
+                    f"Error: Local SHA256 mismatch!\nExpected: {expected_sha256}\nActual:   {actual_sha256}"
+                )
                 sys.exit(1)
             print(f"SUCCESS: Local SHA256 verified successfully: {actual_sha256}")
         if expected_size is not None and actual_size != expected_size:
             print(f"Error: Size mismatch. Expected {expected_size}, got {actual_size}")
             sys.exit(1)
-        print(f"Release OK: {target_tag} | {expected_asset} | {actual_size} bytes | Digest cross-check: {'OK' if digest else 'Unavailable'}")
+        print(
+            f"Release OK: {target_tag} | {expected_asset} | {actual_size} bytes | Digest cross-check: {'OK' if digest else 'Unavailable'}"
+        )
         sys.exit(0)
 
     for aux_name in aux_assets:
@@ -458,7 +509,6 @@ def main():
             print(f"Available assets: {list(assets.keys())}")
             sys.exit(1)
         print(f"  ✓ Found companion asset: {aux_name}")
-
 
     # Validate exact size if provided in manifest
     actual_size = asset.get("size")
@@ -489,9 +539,13 @@ def main():
         with urllib.request.urlopen(urllib.request.Request(sha_url, headers=headers)) as resp:
             sha_content = resp.read().decode("utf-8-sig").strip().split()[0]
             if sha_content.lower() != expected_sha256.lower():
-                print(f"Error: .sha256 asset content mismatch! Expected {expected_sha256}, got {sha_content}")
+                print(
+                    f"Error: .sha256 asset content mismatch! Expected {expected_sha256}, got {sha_content}"
+                )
                 sys.exit(1)
-            print(f"  ✓ Verified companion .sha256 asset matches expected hash: {sha_content[:8]}...")
+            print(
+                f"  ✓ Verified companion .sha256 asset matches expected hash: {sha_content[:8]}..."
+            )
     except Exception as e:
         print(f"Error: Failed to fetch/verify companion .sha256 asset: {e}")
         sys.exit(1)
@@ -505,14 +559,20 @@ def main():
         with urllib.request.urlopen(urllib.request.Request(size_url, headers=headers)) as resp:
             size_content = resp.read().decode("utf-8-sig").strip()
             if not size_content.isdigit():
-                print(f"Error: Companion .size.txt asset content is not a valid integer: '{size_content}'")
+                print(
+                    f"Error: Companion .size.txt asset content is not a valid integer: '{size_content}'"
+                )
                 sys.exit(1)
             parsed_size = int(size_content)
             if parsed_size != actual_size:
-                print(f"Error: .size.txt asset content mismatch! Expected actual deb size {actual_size}, got {parsed_size}")
+                print(
+                    f"Error: .size.txt asset content mismatch! Expected actual deb size {actual_size}, got {parsed_size}"
+                )
                 sys.exit(1)
             if expected_size is not None and parsed_size != expected_size:
-                print(f"Error: .size.txt asset content mismatch! Expected manifest size {expected_size}, got {parsed_size}")
+                print(
+                    f"Error: .size.txt asset content mismatch! Expected manifest size {expected_size}, got {parsed_size}"
+                )
                 sys.exit(1)
             print(f"  ✓ Verified companion .size.txt asset matches exact bytes: {parsed_size}")
     except Exception as e:
@@ -533,9 +593,13 @@ def main():
                 sys.exit(1)
             inventory_paths = parse_inventory_entries(inv_content)
             if len(inventory_paths) < 10:
-                print(f"Error: Companion inventory.txt contains suspicious entry count: {len(inventory_paths)}")
+                print(
+                    f"Error: Companion inventory.txt contains suspicious entry count: {len(inventory_paths)}"
+                )
                 sys.exit(1)
-            print(f"  ✓ Verified companion inventory.txt format ({len(inventory_paths)} valid entries)")
+            print(
+                f"  ✓ Verified companion inventory.txt format ({len(inventory_paths)} valid entries)"
+            )
     except Exception as e:
         print(f"Error: Failed to fetch/verify companion inventory.txt asset: {e}")
         sys.exit(1)
@@ -570,14 +634,13 @@ def main():
                     print(f"Error: build_metadata.json missing required provenance field '{rf}'")
                     sys.exit(1)
 
-
             # Validate version (strip at most one leading 'v' and one trailing '-termux')
             def _normalize_ver(v_str: str) -> str:
                 s = str(v_str).strip()
                 if s.startswith("v"):
                     s = s[1:]
                 if s.endswith("-termux"):
-                    s = s[:-len("-termux")]
+                    s = s[: -len("-termux")]
                 return s
 
             expected_ver = _normalize_ver(expected_package_version or expected_tag)
@@ -599,12 +662,16 @@ def main():
             # Validate source_commit & tree_sha format (40 hex chars)
             meta_commit = str(meta_data["source_commit"]).strip().lower()
             if not re.match(r"^[0-9a-f]{40}$", meta_commit):
-                print(f"Error: build_metadata.json source_commit '{meta_commit}' is not a valid 40-char git commit hash")
+                print(
+                    f"Error: build_metadata.json source_commit '{meta_commit}' is not a valid 40-char git commit hash"
+                )
                 sys.exit(1)
 
             meta_tree = str(meta_data["tree_sha"]).strip().lower()
             if not re.match(r"^[0-9a-f]{40}$", meta_tree):
-                print(f"Error: build_metadata.json tree_sha '{meta_tree}' is not a valid 40-char git tree hash")
+                print(
+                    f"Error: build_metadata.json tree_sha '{meta_tree}' is not a valid 40-char git tree hash"
+                )
                 sys.exit(1)
 
             # Cryptographically bind source_commit and tree_sha against GitHub commit API
@@ -615,15 +682,23 @@ def main():
                     commit_obj = json.loads(resp.read().decode("utf-8"))
                     actual_tree_sha = commit_obj.get("tree", {}).get("sha", "").lower()
                     if actual_tree_sha != meta_tree.lower():
-                        print(f"Error: build_metadata.json tree_sha mismatch! Claimed '{meta_tree}', but commit {meta_commit} tree is '{actual_tree_sha}'")
+                        print(
+                            f"Error: build_metadata.json tree_sha mismatch! Claimed '{meta_tree}', but commit {meta_commit} tree is '{actual_tree_sha}'"
+                        )
                         sys.exit(1)
-                    print(f"  ✓ Verified tree_sha is cryptographically bound to source_commit: {meta_tree[:8]}...")
+                    print(
+                        f"  ✓ Verified tree_sha is cryptographically bound to source_commit: {meta_tree[:8]}..."
+                    )
             except Exception as e:
-                print(f"Error: Failed to verify commit provenance via GitHub API for {meta_commit}: {e}")
+                print(
+                    f"Error: Failed to verify commit provenance via GitHub API for {meta_commit}: {e}"
+                )
                 sys.exit(1)
 
             # Verify source_commit is bound to the release tag's lineage
-            compare_url = f"https://api.github.com/repos/{repo}/compare/{meta_commit}...{target_tag}"
+            compare_url = (
+                f"https://api.github.com/repos/{repo}/compare/{meta_commit}...{target_tag}"
+            )
             try:
                 compare_req = urllib.request.Request(compare_url, headers=headers)
                 with urllib.request.urlopen(compare_req) as resp:
@@ -632,18 +707,26 @@ def main():
                     ahead_by = compare_obj.get("ahead_by", 0)
                     status = compare_obj.get("status", "")
                     if behind_by > 0 or status not in ("ahead", "identical"):
-                        print(f"Error: build_metadata.json source_commit {meta_commit} is not on the release lineage of {target_tag} (status={status}, behind_by={behind_by})")
+                        print(
+                            f"Error: build_metadata.json source_commit {meta_commit} is not on the release lineage of {target_tag} (status={status}, behind_by={behind_by})"
+                        )
                         sys.exit(1)
 
                     if status == "identical":
-                        print(f"  ✓ Verified source_commit is identical to release tag {target_tag}")
+                        print(
+                            f"  ✓ Verified source_commit is identical to release tag {target_tag}"
+                        )
                     else:
                         if ahead_by > 5:
-                            print(f"Error: build_metadata.json source_commit {meta_commit} is too far behind {target_tag} (ahead_by={ahead_by} > 5)")
+                            print(
+                                f"Error: build_metadata.json source_commit {meta_commit} is too far behind {target_tag} (ahead_by={ahead_by} > 5)"
+                            )
                             sys.exit(1)
                         raw_files = compare_obj.get("files", [])
                         if len(raw_files) >= 300 or compare_obj.get("truncated", False):
-                            print(f"Error: GitHub compare API returned truncated file list (count={len(raw_files)} >= 300). Cannot safely verify lineage diff without complete diff.")
+                            print(
+                                f"Error: GitHub compare API returned truncated file list (count={len(raw_files)} >= 300). Cannot safely verify lineage diff without complete diff."
+                            )
                             sys.exit(1)
 
                         # Verify that differences only affect documentation/metadata, not build sources or patches
@@ -657,34 +740,49 @@ def main():
                                 changed_files.append(prev_fname)
 
                         disallowed_changed = [
-                            f for f in changed_files
+                            f
+                            for f in changed_files
                             if f.startswith(BUILD_CRITICAL_PREFIXES) or f in BUILD_CRITICAL_FILES
                         ]
 
                         if disallowed_changed:
-                            print(f"Error: Disallowed build/engine source files changed between build commit {meta_commit} and release {target_tag}: {disallowed_changed}")
+                            print(
+                                f"Error: Disallowed build/engine source files changed between build commit {meta_commit} and release {target_tag}: {disallowed_changed}"
+                            )
                             sys.exit(1)
-                        print(f"  ✓ Verified source_commit belongs to release {target_tag} lineage (status={status}, ahead_by={ahead_by}, zero build source drift)")
+                        print(
+                            f"  ✓ Verified source_commit belongs to release {target_tag} lineage (status={status}, ahead_by={ahead_by}, zero build source drift)"
+                        )
             except Exception as e:
-                print(f"Error: Failed to verify commit lineage for {meta_commit} against {target_tag}: {e}")
+                print(
+                    f"Error: Failed to verify commit lineage for {meta_commit} against {target_tag}: {e}"
+                )
                 sys.exit(1)
 
             # Validate sha256
             meta_sha = str(meta_data["sha256"]).strip().lower()
             if meta_sha != expected_sha256.lower():
-                print(f"Error: build_metadata.json sha256 mismatch! Expected {expected_sha256}, got {meta_sha}")
+                print(
+                    f"Error: build_metadata.json sha256 mismatch! Expected {expected_sha256}, got {meta_sha}"
+                )
                 sys.exit(1)
 
             # Validate size_bytes
             meta_size = meta_data["size_bytes"]
             if not isinstance(meta_size, int) or meta_size <= 0:
-                print(f"Error: build_metadata.json size_bytes '{meta_size}' is not a positive integer")
+                print(
+                    f"Error: build_metadata.json size_bytes '{meta_size}' is not a positive integer"
+                )
                 sys.exit(1)
             if meta_size != actual_size:
-                print(f"Error: build_metadata.json size_bytes mismatch! Expected actual deb size {actual_size}, got {meta_size}")
+                print(
+                    f"Error: build_metadata.json size_bytes mismatch! Expected actual deb size {actual_size}, got {meta_size}"
+                )
                 sys.exit(1)
             if expected_size is not None and meta_size != expected_size:
-                print(f"Error: build_metadata.json size_bytes mismatch! Expected manifest size {expected_size}, got {meta_size}")
+                print(
+                    f"Error: build_metadata.json size_bytes mismatch! Expected manifest size {expected_size}, got {meta_size}"
+                )
                 sys.exit(1)
 
             # Validate build_number and duration fields
@@ -695,7 +793,9 @@ def main():
 
             b_dur = meta_data["build_duration_seconds"]
             if not (isinstance(b_dur, (int, float)) and b_dur >= 0):
-                print(f"Error: build_metadata.json build_duration_seconds '{b_dur}' is not a valid non-negative number")
+                print(
+                    f"Error: build_metadata.json build_duration_seconds '{b_dur}' is not a valid non-negative number"
+                )
                 sys.exit(1)
 
             # Verify workflow run provenance
@@ -714,22 +814,36 @@ def main():
                     run_num = run_obj.get("run_number")
 
                     if run_path != ".github/workflows/build-deb.yml":
-                        print(f"Error: Workflow run {run_id} workflow path mismatch! Expected '.github/workflows/build-deb.yml', got '{run_path}'")
+                        print(
+                            f"Error: Workflow run {run_id} workflow path mismatch! Expected '.github/workflows/build-deb.yml', got '{run_path}'"
+                        )
                         sys.exit(1)
                     if run_head_sha != meta_commit.lower():
-                        print(f"Error: Workflow run {run_id} head_sha mismatch! Claimed {meta_commit}, but run head_sha is '{run_head_sha}'")
+                        print(
+                            f"Error: Workflow run {run_id} head_sha mismatch! Claimed {meta_commit}, but run head_sha is '{run_head_sha}'"
+                        )
                         sys.exit(1)
                     if run_conclusion != "success":
-                        print(f"Error: Workflow run {run_id} conclusion is not 'success' (got '{run_conclusion}')")
+                        print(
+                            f"Error: Workflow run {run_id} conclusion is not 'success' (got '{run_conclusion}')"
+                        )
                         sys.exit(1)
                     if run_num is not None and int(run_num) != int(b_num):
-                        print(f"Error: Workflow run {run_id} run_number mismatch! Claimed build_number {b_num}, but run run_number is '{run_num}'")
+                        print(
+                            f"Error: Workflow run {run_id} run_number mismatch! Claimed build_number {b_num}, but run run_number is '{run_num}'"
+                        )
                         sys.exit(1)
-                    print(f"  ✓ Verified workflow run_id {run_id} (# {b_num} on .github/workflows/build-deb.yml) succeeded for source_commit {meta_commit[:8]}...")
+                    print(
+                        f"  ✓ Verified workflow run_id {run_id} (# {b_num} on .github/workflows/build-deb.yml) succeeded for source_commit {meta_commit[:8]}..."
+                    )
 
                 # Verify workflow run produced and published the matching release artifact
-                run_artifacts_url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/artifacts"
-                with urllib.request.urlopen(urllib.request.Request(run_artifacts_url, headers=headers)) as art_resp:
+                run_artifacts_url = (
+                    f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/artifacts"
+                )
+                with urllib.request.urlopen(
+                    urllib.request.Request(run_artifacts_url, headers=headers)
+                ) as art_resp:
                     art_data = json.loads(art_resp.read().decode("utf-8"))
                     artifacts = art_data.get("artifacts", [])
                     artifact_names = [a.get("name", "") for a in artifacts]
@@ -747,37 +861,56 @@ def main():
                             break
 
                     if not matching_artifact:
-                        print(f"Error: Workflow run {run_id} artifacts do not match expected release package patterns {expected_artifact_patterns} (found: {artifact_names})")
+                        print(
+                            f"Error: Workflow run {run_id} artifacts do not match expected release package patterns {expected_artifact_patterns} (found: {artifact_names})"
+                        )
                         sys.exit(1)
 
                     art_id = matching_artifact.get("id")
                     if matching_artifact.get("expired", False):
-                        print(f"Error: Workflow run {run_id} artifact {art_id} has expired; cannot verify artifact contents")
+                        print(
+                            f"Error: Workflow run {run_id} artifact {art_id} has expired; cannot verify artifact contents"
+                        )
                         sys.exit(1)
 
                     if art_id:
-
-                        zip_url = f"https://api.github.com/repos/{repo}/actions/artifacts/{art_id}/zip"
+                        zip_url = (
+                            f"https://api.github.com/repos/{repo}/actions/artifacts/{art_id}/zip"
+                        )
                         zip_req = urllib.request.Request(zip_url, headers=headers)
                         with urllib.request.urlopen(zip_req) as zip_resp:
                             zip_data = io.BytesIO(zip_resp.read())
                             with zipfile.ZipFile(zip_data) as zf:
-                                deb_names = [name for name in zf.namelist() if name.endswith(".deb")]
+                                deb_names = [
+                                    name for name in zf.namelist() if name.endswith(".deb")
+                                ]
                                 if not deb_names:
-                                    print(f"Error: Workflow run {run_id} artifact zip contains no .deb file: {zf.namelist()}")
+                                    print(
+                                        f"Error: Workflow run {run_id} artifact zip contains no .deb file: {zf.namelist()}"
+                                    )
                                     sys.exit(1)
                                 artifact_deb_bytes = zf.read(deb_names[0])
-                                artifact_deb_sha = hashlib.sha256(artifact_deb_bytes).hexdigest().lower()
+                                artifact_deb_sha = (
+                                    hashlib.sha256(artifact_deb_bytes).hexdigest().lower()
+                                )
                                 if artifact_deb_sha != meta_sha.lower():
-                                    print(f"Error: Workflow run {run_id} artifact {deb_names[0]} sha256 mismatch! Workflow artifact sha256 is {artifact_deb_sha}, but release claimed {meta_sha}")
+                                    print(
+                                        f"Error: Workflow run {run_id} artifact {deb_names[0]} sha256 mismatch! Workflow artifact sha256 is {artifact_deb_sha}, but release claimed {meta_sha}"
+                                    )
                                     sys.exit(1)
-                                print(f"  ✓ Verified workflow artifact {deb_names[0]} sha256 ({artifact_deb_sha[:8]}...) cryptographically matches release deb")
+                                print(
+                                    f"  ✓ Verified workflow artifact {deb_names[0]} sha256 ({artifact_deb_sha[:8]}...) cryptographically matches release deb"
+                                )
 
             except Exception as e:
-                print(f"Error: Failed to verify workflow run {run_id} provenance via GitHub API: {e}")
+                print(
+                    f"Error: Failed to verify workflow run {run_id} provenance via GitHub API: {e}"
+                )
                 sys.exit(1)
 
-            print(f"  ✓ Verified build_metadata.json full 9-field provenance schema (version={meta_ver}, arch={meta_arch}, run_id={run_id}, build_number={b_num}, commit={meta_commit[:8]}..., tree={meta_tree[:8]}..., sha256={meta_sha[:8]}..., size={meta_size}, duration={b_dur}s)")
+            print(
+                f"  ✓ Verified build_metadata.json full 9-field provenance schema (version={meta_ver}, arch={meta_arch}, run_id={run_id}, build_number={b_num}, commit={meta_commit[:8]}..., tree={meta_tree[:8]}..., sha256={meta_sha[:8]}..., size={meta_size}, duration={b_dur}s)"
+            )
 
     except Exception as e:
         print(f"Error: Failed to fetch/verify companion build_metadata.json asset: {e}")
@@ -792,7 +925,9 @@ def main():
         with urllib.request.urlopen(urllib.request.Request(build_ev_url, headers=headers)) as resp:
             b_ev_data = json.loads(resp.read().decode("utf-8-sig"))
             if b_ev_data.get("type") != "build_evidence":
-                print(f"Error: build_evidence.json type mismatch! Expected 'build_evidence', got '{b_ev_data.get('type')}'")
+                print(
+                    f"Error: build_evidence.json type mismatch! Expected 'build_evidence', got '{b_ev_data.get('type')}'"
+                )
                 sys.exit(1)
             b_ev_ver = _normalize_ver(b_ev_data.get("version", ""))
             if b_ev_ver not in (expected_ver, expected_legacy_ver):
@@ -803,41 +938,63 @@ def main():
                 sys.exit(1)
             b_ev_arch = str(b_ev_data.get("arch", "")).lower()
             if b_ev_arch not in ("arm64", "aarch64") or b_ev_arch != meta_arch:
-                print(f"Error: build_evidence.json arch mismatch! Expected {meta_arch}, got {b_ev_arch}")
+                print(
+                    f"Error: build_evidence.json arch mismatch! Expected {meta_arch}, got {b_ev_arch}"
+                )
                 sys.exit(1)
             b_ev_run_id = b_ev_data.get("run_id")
             if str(b_ev_run_id) != str(run_id):
-                print(f"Error: build_evidence.json run_id mismatch! Expected {run_id}, got {b_ev_run_id}")
+                print(
+                    f"Error: build_evidence.json run_id mismatch! Expected {run_id}, got {b_ev_run_id}"
+                )
                 sys.exit(1)
             b_ev_num = b_ev_data.get("build_number")
             if str(b_ev_num) != str(b_num):
-                print(f"Error: build_evidence.json build_number mismatch! Expected {b_num}, got {b_ev_num}")
+                print(
+                    f"Error: build_evidence.json build_number mismatch! Expected {b_num}, got {b_ev_num}"
+                )
                 sys.exit(1)
             b_ev_commit = str(b_ev_data.get("source_commit", "")).strip().lower()
             if b_ev_commit != meta_commit:
-                print(f"Error: build_evidence.json source_commit mismatch! Expected {meta_commit}, got {b_ev_commit}")
+                print(
+                    f"Error: build_evidence.json source_commit mismatch! Expected {meta_commit}, got {b_ev_commit}"
+                )
                 sys.exit(1)
             b_ev_tree = str(b_ev_data.get("tree_sha", "")).strip().lower()
             if b_ev_tree != meta_tree:
-                print(f"Error: build_evidence.json tree_sha mismatch! Expected {meta_tree}, got {b_ev_tree}")
+                print(
+                    f"Error: build_evidence.json tree_sha mismatch! Expected {meta_tree}, got {b_ev_tree}"
+                )
                 sys.exit(1)
             b_ev_sha = str(b_ev_data.get("deb_sha256", "")).strip().lower()
             if b_ev_sha != expected_sha256.lower():
-                print(f"Error: build_evidence.json deb_sha256 mismatch! Expected {expected_sha256}, got {b_ev_sha}")
+                print(
+                    f"Error: build_evidence.json deb_sha256 mismatch! Expected {expected_sha256}, got {b_ev_sha}"
+                )
                 sys.exit(1)
             b_ev_size = b_ev_data.get("deb_size_bytes")
             if not isinstance(b_ev_size, int) or b_ev_size != actual_size:
-                print(f"Error: build_evidence.json deb_size_bytes mismatch! Expected {actual_size}, got {b_ev_size}")
+                print(
+                    f"Error: build_evidence.json deb_size_bytes mismatch! Expected {actual_size}, got {b_ev_size}"
+                )
                 sys.exit(1)
             b_ev_inv_cnt = b_ev_data.get("inventory_file_count")
-            if not isinstance(b_ev_inv_cnt, int) or b_ev_inv_cnt <= 0 or b_ev_inv_cnt != len(inventory_paths):
-                print(f"Error: build_evidence.json inventory_file_count mismatch! Expected {len(inventory_paths)}, got {b_ev_inv_cnt}")
+            if (
+                not isinstance(b_ev_inv_cnt, int)
+                or b_ev_inv_cnt <= 0
+                or b_ev_inv_cnt != len(inventory_paths)
+            ):
+                print(
+                    f"Error: build_evidence.json inventory_file_count mismatch! Expected {len(inventory_paths)}, got {b_ev_inv_cnt}"
+                )
                 sys.exit(1)
             b_ev_dur = b_ev_data.get("build_duration_seconds")
             if not (isinstance(b_ev_dur, (int, float)) and b_ev_dur >= 0):
                 print(f"Error: build_evidence.json build_duration_seconds is invalid: {b_ev_dur}")
                 sys.exit(1)
-            print(f"  ✓ Verified build_evidence.json full schema (run_id={b_ev_run_id}, build_number={b_ev_num}, files={b_ev_inv_cnt}, sha256={b_ev_sha[:8]}...)")
+            print(
+                f"  ✓ Verified build_evidence.json full schema (run_id={b_ev_run_id}, build_number={b_ev_num}, files={b_ev_inv_cnt}, sha256={b_ev_sha[:8]}...)"
+            )
     except Exception as e:
         print(f"Error: Failed to fetch/verify companion build_evidence.json asset: {e}")
         sys.exit(1)
@@ -852,27 +1009,47 @@ def main():
             dev_ev_data = json.loads(resp.read().decode("utf-8-sig"))
 
             if dev_ev_data.get("status") != "passed":
-                print(f"Error: device_smoke_evidence.json status is not 'passed' (got '{dev_ev_data.get('status')}')")
+                print(
+                    f"Error: device_smoke_evidence.json status is not 'passed' (got '{dev_ev_data.get('status')}')"
+                )
                 sys.exit(1)
             if dev_ev_data.get("mode_a_status") != "passed":
-                print(f"Error: device_smoke_evidence.json mode_a_status is not 'passed' (got '{dev_ev_data.get('mode_a_status')}')")
+                print(
+                    f"Error: device_smoke_evidence.json mode_a_status is not 'passed' (got '{dev_ev_data.get('mode_a_status')}')"
+                )
                 sys.exit(1)
             if dev_ev_data.get("mode_b_status") != "passed":
-                print(f"Error: device_smoke_evidence.json mode_b_status is not 'passed' (got '{dev_ev_data.get('mode_b_status')}')")
+                print(
+                    f"Error: device_smoke_evidence.json mode_b_status is not 'passed' (got '{dev_ev_data.get('mode_b_status')}')"
+                )
                 sys.exit(1)
 
-            dev_src_commit = str(dev_ev_data.get("artifact_source_commit") or dev_ev_data.get("source_commit") or "").strip().lower()
+            dev_src_commit = (
+                str(
+                    dev_ev_data.get("artifact_source_commit")
+                    or dev_ev_data.get("source_commit")
+                    or ""
+                )
+                .strip()
+                .lower()
+            )
             dev_ver_commit = str(dev_ev_data.get("verifier_commit") or "").strip().lower()
             if dev_src_commit != meta_commit:
-                print(f"Error: device_smoke_evidence.json artifact_source_commit mismatch! Expected {meta_commit}, got {dev_src_commit}")
+                print(
+                    f"Error: device_smoke_evidence.json artifact_source_commit mismatch! Expected {meta_commit}, got {dev_src_commit}"
+                )
                 sys.exit(1)
             if dev_ver_commit != meta_commit:
-                print(f"Error: device_smoke_evidence.json verifier_commit mismatch! Expected {meta_commit}, got {dev_ver_commit}")
+                print(
+                    f"Error: device_smoke_evidence.json verifier_commit mismatch! Expected {meta_commit}, got {dev_ver_commit}"
+                )
                 sys.exit(1)
 
             dev_build_run_id = dev_ev_data.get("build_run_id") or dev_ev_data.get("run_id")
             if str(dev_build_run_id) != str(run_id):
-                print(f"Error: device_smoke_evidence.json build_run_id mismatch! Expected {run_id}, got {dev_build_run_id}")
+                print(
+                    f"Error: device_smoke_evidence.json build_run_id mismatch! Expected {run_id}, got {dev_build_run_id}"
+                )
                 sys.exit(1)
 
             dev_artifacts = dev_ev_data.get("artifacts", {})
@@ -882,44 +1059,56 @@ def main():
 
             dev_deb_sha = str(dev_artifacts.get("deb_sha256", "")).strip().lower()
             if dev_deb_sha != expected_sha256.lower():
-                print(f"Error: device_smoke_evidence.json artifacts.deb_sha256 mismatch! Expected {expected_sha256}, got {dev_deb_sha}")
+                print(
+                    f"Error: device_smoke_evidence.json artifacts.deb_sha256 mismatch! Expected {expected_sha256}, got {dev_deb_sha}"
+                )
                 sys.exit(1)
 
             dev_deb_sz = dev_artifacts.get("deb_size")
             if not isinstance(dev_deb_sz, int) or dev_deb_sz != actual_size:
-                print(f"Error: device_smoke_evidence.json artifacts.deb_size mismatch! Expected {actual_size}, got {dev_deb_sz}")
+                print(
+                    f"Error: device_smoke_evidence.json artifacts.deb_size mismatch! Expected {actual_size}, got {dev_deb_sz}"
+                )
                 sys.exit(1)
 
             apk_sha = str(dev_artifacts.get("apk_sha256", "")).strip().lower()
             if not re.match(r"^[0-9a-f]{64}$", apk_sha):
-                print(f"Error: device_smoke_evidence.json artifacts.apk_sha256 is not a valid 64-char sha256: '{apk_sha}'")
+                print(
+                    f"Error: device_smoke_evidence.json artifacts.apk_sha256 is not a valid 64-char sha256: '{apk_sha}'"
+                )
                 sys.exit(1)
 
             apk_sz = dev_artifacts.get("apk_size")
             if not (isinstance(apk_sz, int) and apk_sz > 0):
-                print(f"Error: device_smoke_evidence.json artifacts.apk_size is not a positive integer: {apk_sz}")
+                print(
+                    f"Error: device_smoke_evidence.json artifacts.apk_size is not a positive integer: {apk_sz}"
+                )
                 sys.exit(1)
 
             aab_sha = str(dev_artifacts.get("aab_sha256", "")).strip().lower()
             if not re.match(r"^[0-9a-f]{64}$", aab_sha):
-                print(f"Error: device_smoke_evidence.json artifacts.aab_sha256 is not a valid 64-char sha256: '{aab_sha}'")
+                print(
+                    f"Error: device_smoke_evidence.json artifacts.aab_sha256 is not a valid 64-char sha256: '{aab_sha}'"
+                )
                 sys.exit(1)
 
             aab_sz = dev_artifacts.get("aab_size")
             if not (isinstance(aab_sz, int) and aab_sz > 0):
-                print(f"Error: device_smoke_evidence.json artifacts.aab_size is not a positive integer: {aab_sz}")
+                print(
+                    f"Error: device_smoke_evidence.json artifacts.aab_size is not a positive integer: {aab_sz}"
+                )
                 sys.exit(1)
 
-            print(f"  ✓ Verified device_smoke_evidence.json full schema (status=passed, mode_a=passed, mode_b=passed, build_run_id={dev_build_run_id}, deb_sha256={dev_deb_sha[:8]}..., apk_size={apk_sz}, aab_size={aab_sz})")
+            print(
+                f"  ✓ Verified device_smoke_evidence.json full schema (status=passed, mode_a=passed, mode_b=passed, build_run_id={dev_build_run_id}, deb_sha256={dev_deb_sha[:8]}..., apk_size={apk_sz}, aab_size={aab_sz})"
+            )
     except Exception as e:
         print(f"Error: Failed to fetch/verify companion device_smoke_evidence.json asset: {e}")
         sys.exit(1)
 
-
     # 8. Download asset to RUNNER_TEMP
     runner_temp = os.environ.get("RUNNER_TEMP") or tempfile.gettempdir()
     download_path = Path(runner_temp) / expected_asset
-
 
     print(f"Downloading {asset_url} to {download_path}...")
     try:
@@ -942,7 +1131,9 @@ def main():
     actual_sha256 = sha256_hash.hexdigest().lower()
 
     if actual_sha256 != expected_sha256.lower():
-        print(f"Error: Local SHA256 mismatch!\nExpected: {expected_sha256}\nActual:   {actual_sha256}")
+        print(
+            f"Error: Local SHA256 mismatch!\nExpected: {expected_sha256}\nActual:   {actual_sha256}"
+        )
         sys.exit(1)
 
     print(f"SUCCESS: Local SHA256 verified successfully: {actual_sha256}")
@@ -963,18 +1154,29 @@ def main():
             missing_in_deb = inv_set - deb_set
             extra_in_deb = deb_set - inv_set
             if missing_in_deb:
-                print(f"  In inventory.txt but missing from deb ({len(missing_in_deb)} entries): {list(missing_in_deb)[:5]}")
+                print(
+                    f"  In inventory.txt but missing from deb ({len(missing_in_deb)} entries): {list(missing_in_deb)[:5]}"
+                )
             if extra_in_deb:
-                print(f"  In deb but missing from inventory.txt ({len(extra_in_deb)} entries): {list(extra_in_deb)[:5]}")
+                print(
+                    f"  In deb but missing from inventory.txt ({len(extra_in_deb)} entries): {list(extra_in_deb)[:5]}"
+                )
             if not missing_in_deb and not extra_in_deb:
-                print(f"  Multiplicity or ordering mismatch: inventory has {len(inventory_paths)} entries, deb has {len(deb_entries)} entries")
+                print(
+                    f"  Multiplicity or ordering mismatch: inventory has {len(inventory_paths)} entries, deb has {len(deb_entries)} entries"
+                )
             sys.exit(1)
-        print(f"  ✓ Inventory perfectly matches package contents ({len(deb_entries)} entries verified)")
+        print(
+            f"  ✓ Inventory perfectly matches package contents ({len(deb_entries)} entries verified)"
+        )
     except Exception as e:
         print(f"Error: Failed to verify package inventory integrity: {e}")
         sys.exit(1)
 
-    print(f"Release OK: {target_tag} | {expected_asset} | {actual_size} bytes | Digest cross-check: {'OK' if digest else 'Unavailable'}")
+    print(
+        f"Release OK: {target_tag} | {expected_asset} | {actual_size} bytes | Digest cross-check: {'OK' if digest else 'Unavailable'}"
+    )
+
 
 if __name__ == "__main__":
     main()
