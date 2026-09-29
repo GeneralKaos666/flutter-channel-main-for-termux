@@ -158,3 +158,6 @@ tmp_*/
 *.temp
 dpkg_state.json
 AGENTS.md
+
+# ----- Isolated worktrees (sdd) -----
+.worktrees/
