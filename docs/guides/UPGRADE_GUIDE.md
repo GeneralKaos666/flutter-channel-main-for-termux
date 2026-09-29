@@ -1,6 +1,6 @@
 # Flutter Version Upgrade Guide
 
-This document explains how to upgrade Termux Flutter from the current main pins (`build.toml [flutter] tag='main'`, Dart `3.14.0-271.0.dev`) to a new revision, and lists the risk points in Dart / Flutter Tools / Gradle plugins that must be re-checked after the main move.
+This document shows how you upgrade Termux Flutter from the current main pins (`build.toml [flutter] tag='main'`, Dart `3.14.0-271.0.dev`) to a new revision, and which risk points in Dart / Flutter Tools / Gradle plugins you re-check after the main move.
 
 ---
 
@@ -13,7 +13,7 @@ This document explains how to upgrade Termux Flutter from the current main pins 
 □ Step 4: Create the patch directory for the new version and rebase the patches
 □ Step 5: Apply the patches (engine / dart / skia)
 □ Step 6: Assemble the sysroot
-□ Step 7: configure + build (modes from `build.toml [build] runtime`, currently `['release']`; debug/profile need explicit `--mode=debug|profile`)
+□ Step 7: configure + build (modes from `build.toml [build] runtime`, `['release']`; debug/profile need explicit `--mode=debug|profile`)
 □ Step 8: Run debuild to produce the .deb
 □ Step 9: Push to the device and test
 □ Step 10: Update post_install.sh (if necessary)
@@ -24,9 +24,9 @@ This document explains how to upgrade Termux Flutter from the current main pins 
 
 | Item | Why it matters | How to check |
 |------|------------|----------|
-| `dart` / `dartvm` / `dartaotruntime` | Dart 3.10+ splits the CLI and VM runtime more clearly; packaging only `dart` will break either the snapshots or the Flutter CLI | `python3 build.py debuild --arch=arm64` must pass the artifact validator |
-| Flutter Tools host platform | Termux is treated by Dart as an `android` host; official Flutter Tools normally only handles macOS/Linux/Windows | Run `flutter doctor -v` on Termux; it must not crash during the cache/artifact/device-discovery phase |
-| Flutter Gradle plugin constants | As of Flutter 3.44, `FlutterPlugin.kt` directly imports `PLATFORM_ABI_LIST` | `flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons` must not show Kotlin unresolved-reference errors |
+| `dart` / `dartvm` / `dartaotruntime` | Dart 3.10+ splits the CLI and VM runtime; packaging only `dart` breaks either the snapshots or the Flutter CLI | `python3 build.py debuild --arch=arm64` must pass the artifact validator |
+| Flutter Tools host platform | Termux is treated by Dart as an `android` host; official Flutter Tools handles only macOS/Linux/Windows | Run `flutter doctor -v` on Termux; it must not crash during the cache/artifact/device-discovery phase |
+| Flutter Gradle plugin constants | As of Flutter 3.44, `FlutterPlugin.kt` imports `PLATFORM_ABI_LIST` | `flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons` must not show Kotlin unresolved-reference errors |
 | Gradle included-build cache | post-install modifies the Kotlin source; on upgrade the old cache may mix old and new sources | `post_install.sh` must clear `packages/flutter_tools/gradle/.gradle`, `build`, `bin` |
 | Android SDK / aapt2 | Newer templates may raise `compileSdk`; Termux aapt2 (16.0.0.4) loads android-36 `android.jar` | Default new projects to `compileSdk = 36`, `targetSdk = 36`, `android.aapt2FromMavenOverride`; post-install falls back 36 → 35 → 34 when aapt2 cannot load the newest platform |
 
@@ -41,8 +41,8 @@ Edit `build.toml`:
 tag = 'main'    # ← stable uses '3.XX.Y'; this branch tracks 'main'
 ```
 
-> Other fields usually don't need to change (NDK path, jobs, etc.).
-> If the new Flutter version requires a newer NDK, update the `[ndk]` section as well.
+> Leave other fields alone (NDK path, jobs).
+> If the new Flutter version requires a newer NDK, update the `[ndk]` section.
 
 ---
 
@@ -54,7 +54,7 @@ cd ~/termux-flutter
 python3 build.py clone
 ```
 
-This `git clone`s the Flutter repo at the specified tag into `./flutter/`.
+You clone the Flutter repo at the specified tag into `./flutter/`.
 
 ---
 
@@ -67,9 +67,9 @@ python3 build.py sync
 This will:
 1. Copy `.gclient` to the engine directory
 2. Run `gclient sync -DR --no-history` (downloads ~30GB engine + deps)
-3. Automatically replace the prebuilt dart-sdk with the matching version
+3. Replace the prebuilt dart-sdk with the matching version
 
-> ⏱ Takes about 30-60 minutes (depending on network speed)
+> ⏱ Expect 30-60 minutes (depends on your network speed)
 
 ---
 
@@ -89,9 +89,9 @@ Patches live flat in `patches/` (engine.patch, dart.patch, skia.patch) and are t
 
 **Method A: Try to apply the existing patches**
 
-The `.gclient` `custom_hooks` apply the patches automatically during
-`python3 build.py sync`. If you instead want to test them against a fresh
-checkout, run them manually (reset first if a prior `sync` already applied
+The `.gclient` `custom_hooks` apply the patches during
+`python3 build.py sync`. To test them against a fresh
+checkout, run them by hand (reset first if a prior `sync` already applied
 them):
 
 ```bash
@@ -100,9 +100,9 @@ python3 build.py patch --file=./patches/dart.patch --path=engine/src/flutter/thi
 python3 build.py patch --file=./patches/skia.patch --path=engine/src/flutter/third_party/skia
 ```
 
-If the patch fails to apply (offset/conflict), you need to rebase it manually:
+If the patch fails to apply (offset/conflict), rebase it by hand:
 
-**Method B: Rebase the patch manually**
+**Method B: Rebase the patch by hand**
 
 ```bash
 cd flutter/engine/src/flutter
@@ -119,37 +119,37 @@ git diff > ~/termux-flutter/patches/engine.patch
 ### Key Modification Points for Each Patch
 
 <details>
-<summary><b>engine.patch — what must be changed</b></summary>
+<summary><b>engine.patch: what must be changed</b></summary>
 
-1. **`build/config/termux/BUILD.gn`** — add the Termux runtime library flags:
+1. **`build/config/termux/BUILD.gn`**: add the Termux runtime library flags:
    ```gn
    ldflags = ["-stdlib=libstdc++", "-Wl,--warn-shared-textrel", "-llog", "-lm"]
    ```
 
-2. **`build/toolchain/custom/BUILD.gn`** — defines the `is_termux` flag
+2. **`build/toolchain/custom/BUILD.gn`**: defines the `is_termux` flag
 
-3. **`flutter/BUILD.gn`** — add `-llog -lm` under the Termux condition
+3. **`flutter/BUILD.gn`**: add `-llog -lm` under the Termux condition
 
-4. **`shell/platform/linux/`** — GTK embedding fixes for bionic
-
-</details>
-
-<details>
-<summary><b>dart.patch — TLS fix</b></summary>
-
-Fixes the Thread-Local Storage alignment issue in the Dart VM. The Android bionic linker requires the TLS segment to be correctly aligned.
+4. **`shell/platform/linux/`**: GTK embedding fixes for bionic
 
 </details>
 
 <details>
-<summary><b>skia.patch — compilation fix</b></summary>
+<summary><b>dart.patch: TLS fix</b></summary>
+
+Fixes the Thread-Local Storage alignment issue in the Dart VM. The Android bionic linker requires correct TLS segment alignment.
+
+</details>
+
+<details>
+<summary><b>skia.patch: compilation fix</b></summary>
 
 Fixes Skia compilation errors on the ARM64 bionic environment.
 
 </details>
 
 <details>
-<summary><b>ARM64-only APK — install-time CLI modification</b></summary>
+<summary><b>ARM64-only APK: install-time CLI modification</b></summary>
 
 `post_install.sh` modifies `build_apk.dart` / `build_aar.dart` / `build_appbundle.dart` and the Flutter Gradle plugin
 so that the default `targetPlatform` is `[arm64]` only (disables arm/x64 gen_snapshot on Termux).
@@ -163,9 +163,9 @@ so that the default `targetPlatform` is `[arm64]` only (disables arm/x64 gen_sna
 
 ## Step 5: Apply the Patches
 
-Patches are applied automatically by the `.gclient` `custom_hooks` during
-`python3 build.py sync` — no manual step is needed after a successful sync.
-The command below is only for re-testing a patch against a fresh checkout
+The `.gclient` `custom_hooks` apply the patches during
+`python3 build.py sync`. After a successful sync you run no patch commands.
+Use the command below only to re-test a patch against a fresh checkout
 (reset the tree first if the hooks already applied it):
 
 ```bash
@@ -174,7 +174,7 @@ python3 build.py patch --file=./patches/dart.patch --path=engine/src/flutter/thi
 python3 build.py patch --file=./patches/skia.patch --path=engine/src/flutter/third_party/skia
 ```
 
-> ARM64-only APK enforcement is handled at install time by `post_install.sh`
+> `post_install.sh` enforces ARM64-only APK at install time
 > (via the `build_apk`, `build_aar`, `build_appbundle`, and `plugin_utils` patches),
 > not as a build-time patch.
 
@@ -186,16 +186,16 @@ python3 build.py patch --file=./patches/skia.patch --path=engine/src/flutter/thi
 python3 build.py sysroot --arch=arm64
 ```
 
-Downloads `.deb` packages from the Termux apt repo and extracts them into the sysroot directory.
+You download `.deb` packages from the Termux apt repo and extract them into the sysroot directory.
 
-> Usually the sysroot package list in `build.toml` does not need to be modified,
+> Leave the sysroot package list in `build.toml` alone,
 > unless the new Flutter version introduces new system dependencies (for example, adding GTK4).
 
 ---
 
 ## Step 7: Configure + Build (per Runtime Mode)
 
-The default pipeline runs only the modes in `build.toml [build] runtime` (currently `['release']`). Configure + build additional modes explicitly only if you are producing those engine variants (needed for the corresponding dart-sdk snapshots):
+The default pipeline runs only the modes in `build.toml [build] runtime` (`['release']`). Configure + build additional modes only if you produce those engine variants (needed for the corresponding dart-sdk snapshots):
 
 ```bash
 # Release (main mode — includes dart-sdk, gen_snapshot, linux engine, etc.)
@@ -215,7 +215,7 @@ python3 build.py build --arch=arm64 --mode=profile
 >
 > ⚠️ **Important**: the `__MODE__` tuple in `utils.py` is `('release', 'debug', 'profile')`,
 > with release in the first position. `Output.any` picks the first existing directory,
-> so the release (product mode) dart-sdk snapshots drive the Flutter CLI. Do not reorder modes arbitrarily.
+> so the release (product mode) dart-sdk snapshots drive the Flutter CLI. Do not reorder modes.
 
 ---
 
@@ -226,7 +226,7 @@ python3 build.py build --arch=arm64 --mode=profile
 # (no separate build_dart step in the FFT pipeline)
 ```
 
-> ✔️ `dart_sdk_archive`, `flutter_patched_sdk`, and `flutter_gtk` are all included in the `build()` ninja invocation.
+> ✔️ The `build()` ninja invocation includes `dart_sdk_archive`, `flutter_patched_sdk`, and `flutter_gtk`.
 
 ---
 
@@ -234,7 +234,7 @@ python3 build.py build --arch=arm64 --mode=profile
 
 > In the FFT pipeline the standard `build()` produces the Linux engine targets; Android APK builds on Termux
 > use the gen_snapshot shipped in the deb package's artifacts.
-> Only ARM64 → ARM64 works; ARM32 and x64 targets cannot be compiled (see the README).
+> Only ARM64 → ARM64 works; you cannot compile ARM32 and x64 targets (see the README).
 
 ---
 
@@ -280,7 +280,7 @@ flutter build linux --release
 ## Step 12: Update post_install.sh (If Necessary)
 
 `scripts/install/post_install.sh` contains many `sed` modifications against the Flutter source code.
-If the new Flutter version changes any of these locations, they need to be updated:
+If the new Flutter version changes any of these locations, update them:
 
 | Modification target | Purpose | When it may need updating |
 |---------|------|-------------------|
@@ -309,7 +309,7 @@ gh release create "$VER" `
   "$DEB"
 ```
 
-Remember to update:
+Update:
 - The version number in `README.md`
 - `docs/releases/CHANGELOG.md`
 - `docs/releases/RELEASE_NOTES.md`
@@ -318,9 +318,9 @@ Remember to update:
 
 ---
 
-## 🔄 One-Command Upgrade (If the Patches Apply Cleanly)
+## 🔄 One-Command Upgrade (If the Patches Apply)
 
-If the patches can be applied directly, the whole process can be run with a single command:
+If the patches apply without conflicts, run the whole process with a single command:
 
 ```bash
 python3 build.py
@@ -330,10 +330,10 @@ python3 build.py
 1. config
 2. clone
 3. sync
-4. per arch: sysroot, then configure + build for each mode in `build.toml [build] runtime` (currently `['release']`), including `dart_sdk_archive`
+4. per arch: sysroot, then configure + build for each mode in `build.toml [build] runtime` (`['release']`), including `dart_sdk_archive`
 5. debuild
 
-> ⏱ The whole thing takes about 2-4 hours
+> ⏱ Expect about 2-4 hours
 
 ---
 
@@ -345,7 +345,7 @@ python3 build.py
 
 **Cause**: upstream changed files covered by the patch
 
-**Fix**: modify the source manually and regenerate the patch (see Step 4)
+**Fix**: modify the source by hand and regenerate the patch (see Step 4)
 
 ### 2. New system dependencies
 
@@ -365,7 +365,7 @@ python3 build.py
 
 **Symptom**: `package_config.json` language version error
 
-**Fix**: `build.py sync` handles this automatically, but if the version number changed, check the download URL
+**Fix**: `build.py sync` handles this, but if the version number changed, check the download URL
 
 ### 5. post_install.sh sed failure
 
@@ -373,7 +373,7 @@ python3 build.py
 
 **Cause**: the new Flutter version changed the Dart source code that was being modified
 
-**Fix**: manually inspect the target files on the device and update the `sed` search patterns
+**Fix**: inspect the target files on the device and update the `sed` search patterns
 
 ---
 

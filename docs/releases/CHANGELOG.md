@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Snapshot-stamped the deb as `flutter_0~main.20260926.8db5526-1_aarch64.deb` via `utils.deb_version()` / `snapshot_stamp()` so each refresh sorts as an upgrade.
 - No hosted main-channel release exists yet; size/SHA stay `TBD` and installers fail closed until the first main build publishes.
 - Documented the refresh loop (`clone --force` → verify patches → pin versions → drift `--fix` → full verification) in `BUILD_GUIDE.md`.
-- Daily gated autobuild: `main-refresh.yml` (09:00 UTC) validates patches fail-closed before pushing pins, and `build.yml` (12:00 UTC `gate` job) builds only when pins equal upstream HEAD and the deb is unreleased — no new tag until conflicts are resolved; manual dispatch still always builds.
+- Daily gated autobuild: `main-refresh.yml` (09:00 UTC) validates patches fail-closed before pushing pins, and `build.yml` (12:00 UTC `gate` job) builds only when pins equal upstream HEAD and the deb is unreleased: no new tag until conflicts are resolved; manual dispatch still always builds.
 
 ### Infrastructure & CI
 - Lifted `compileSdk`/`targetSdk` default from 34 to 36 (fail-closed ladder 36→35→34) using Termux aapt2 16.0.0.4 (Android Build-Tools), driven by `build.toml` `[android]` and applied per-project by `post_install.sh`/`flutter_project_config.sh`.
@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modernized packages: single JDK (`openjdk-21`), `7zip`, dynamic NDK clang detection, and an `apt-mark hold aapt2` hardening with a `TERMUX_NO_HOLD_AAPT2` opt-out.
 - Bumped host deps (`requirements.txt`) and CI/CD actions to `actions/checkout@v7.0.1` / `setup-python@v7.0.0` / `upload-artifact@v7.0.1`, Python 3.12.
 - Restored the GitHub-hosted `build.yml` full `.deb` build (manual dispatch only, publishes a prerelease behind an asset-immutability guard), modernized to an inline `depot_tools` bootstrap with the engine/dart/skia patches applied; `build-deb.yml` remains as the self-hosted fallback.
-- `test_build.py` version expectations are now fully derived from `build.toml` at test time (bump-agnostic).
+- `test_build.py` version expectations now derive from `build.toml` at test time (bump-agnostic).
 
 ### Changed
 - NDK is configured from `build.toml [ndk] version` everywhere (docs, `build-deb.yml` fallback to `/opt/android-ndk-r{M}`); `pytest.ini` `testpaths` points at `test_build.py`.
@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for disabling resource optimizations and shrinking during APK builds in smoke tests due to compatibility issues with Termux's native `aapt2`.
 
 ### Fixed
-- Fixed Dart detection in `post_install.sh` to check for `$SYSTEM_DART` directly, avoiding path shadowing by the SDK's local CLI wrapper.
+- Fixed Dart detection in `post_install.sh` to check for `$SYSTEM_DART`, avoiding path shadowing by the SDK's local CLI wrapper.
 - Fixed a resource packaging failure (missing `AndroidManifest.xml`) during Termux release APK builds by updating the `termux_smoke.sh` configuration and documentation.
 
 
@@ -42,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub-hosted `CI` workflow for lightweight PR/push checks: Python compile, shell syntax, PowerShell parse, workflow/package/docs sanity, and whitespace guard.
 - Manual self-hosted workflows for full `.deb` builds, Windows+ADB tablet smoke tests, and release asset metadata verification.
 - `docs/CI_CD.md` documenting workflow boundaries, runner requirements, security model, and local equivalents.
-- `scripts/ci/check_repo.py` to keep release/docs/package contracts from silently regressing.
+- `scripts/ci/check_repo.py` to keep release/docs/package contracts from regressing.
 - `scripts/device/run_termux_smoke.ps1` and `scripts/device/termux_smoke.sh` for repeatable Termux tablet smoke testing.
 
 ### Changed
@@ -78,12 +78,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.41.5-termux-2] - 2026-04-13
 
 ### Fixed
-- **`flutter build linux` on device**: `post_install.sh` sed command used `|` delimiter which collided with `||` in Dart source code, silently failing. Changed to `@` delimiter
+- **`flutter build linux` on device**: `post_install.sh` sed command used `|` delimiter which collided with `||` in Dart source code and failed with no error output. Changed to `@` delimiter
 - **`build.py` sync duplicating directories**: `cp -r` caused nested `scripts/scripts/` dirs. Fixed to use `cp -a {src}/. {dst}/`
 - **flutter_tools snapshot not rebuilt**: Added `rm -f flutter_tools.stamp` and `rm -f flutter_tools.snapshot` after patching `build_linux.dart` to force Dart VM to pick up changes
 
 ### Added
-- `docs/guides/UPGRADE_GUIDE.md` — complete step-by-step guide for upgrading to new Flutter versions
+- `docs/guides/UPGRADE_GUIDE.md`: step-by-step guide for upgrading to new Flutter versions
 - `.gitignore` patterns for temp scripts (`fix_*.sh`, `test_*.sh`, etc.)
 - E2E test script `gh_e2e_test.sh` for automated clean-install verification from GitHub Release
 
@@ -101,7 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **`flutter build linux` (release/profile) failure**: `build_all()` was only building debug mode engine for Linux, leaving `linux_release_arm64/` and `linux_profile_arm64/` empty in the deb package
-- **`utils.py __MODE__` ordering**: the tuple is `('release', 'debug', 'profile')` (release first). `Output.any` picks the first existing engine output directory, so when a release directory exists its (product-mode) dart-sdk snapshots drive the Flutter CLI. Reordering modes arbitrarily breaks packaging. (This conflicts with an earlier changelog note claiming a debug-first order; current source of truth is `utils.py`, which is release-first.)
+- **`utils.py __MODE__` ordering**: the tuple is `('release', 'debug', 'profile')` (release first). `Output.any` picks the first existing engine output directory, so when a release directory exists its (product-mode) dart-sdk snapshots drive the Flutter CLI. Reordering modes breaks packaging. (This conflicts with an earlier changelog note claiming a debug-first order; current source of truth is `utils.py`, which is release-first.)
 
 ### Technical Details
 - Build output now includes 5 directories: `linux_debug_arm64/`, `linux_release_arm64/`, `linux_profile_arm64/`, `android_release_arm64/`, `android_profile_arm64/`

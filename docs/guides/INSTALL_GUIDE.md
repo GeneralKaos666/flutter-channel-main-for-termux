@@ -1,6 +1,6 @@
 # Termux Flutter main Installation Guide
 
-This guide covers `flutter_0~main.20260926.8db5526-1_aarch64.deb`, targeting the following on ARM64 Termux:
+This guide covers `flutter_0~main.20260926.8db5526-1_aarch64.deb` on ARM64 Termux:
 
 - `flutter doctor -v`
 - `flutter create`
@@ -26,8 +26,8 @@ This guide covers `flutter_0~main.20260926.8db5526-1_aarch64.deb`, targeting the
 |------|-------------|
 | Android | Android 11 (API 30) or higher |
 | CPU | ARM64 / aarch64 |
-| Termux | F-Droid build or official GitHub release build recommended |
-| Storage | At least 5GB; 8GB+ recommended for a full Android SDK/NDK + Gradle cache |
+| Termux | Use the F-Droid build or official GitHub release build |
+| Storage | At least 5GB; use 8GB+ for a full Android SDK/NDK + Gradle cache |
 | Java | `openjdk-21` |
 
 ## Method 1: One-Command Install (Recommended)
@@ -37,7 +37,7 @@ curl -sL https://raw.githubusercontent.com/GeneralKaos666/prerelease-flutter-for
 bash ~/install.sh
 ```
 
-This script installs Flutter, the Android SDK/NDK, the required Termux packages, and runs post-install. The first run downloads a large amount of data, so keep the screen on and the network stable.
+You install Flutter, the Android SDK/NDK, the required Termux packages, and run post-install with this script. The first run downloads a large amount of data. Keep the screen on and the network stable.
 
 ## Method 2: Manual deb Install
 
@@ -64,10 +64,10 @@ source $PREFIX/etc/profile.d/flutter.sh
 flutter doctor -v
 ```
 
-These warnings in `flutter doctor` are expected:
+You can ignore these warnings in `flutter doctor`:
 
 - unknown channel / unknown upstream source: the Flutter SDK in the deb is not an official git remote checkout.
-- no connected device: no ADB device connected in Termux yet; this does not affect `flutter build apk`.
+- no connected device: you connected no ADB device in Termux yet. You can still run `flutter build apk`.
 
 ## What post_install.sh Does
 
@@ -102,7 +102,7 @@ Expected highlights:
 - `dart --version` shows `android_arm64` (Termux JIT Dart).
 - `dartvm --version` shows `linux_arm64` (engine VM).
 
-## Create an Android APK Project (Mode A: Local Build as an Example)
+## Create an Android APK Project (Mode A: Local Build)
 
 Create the project and fix the shebang:
 
@@ -141,7 +141,7 @@ android {
 }
 ```
 
-3. Build (note: you must bypass the icon tree shaking restricted by JIT Dart):
+3. Build (JIT Dart cannot run the icon tree shaker, so bypass it):
 
 ```bash
 flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons
@@ -170,7 +170,7 @@ build/linux/arm64/release/bundle/
 
 ## flutter run / Hot Reload
 
-`flutter run` requires ADB inside Termux to see the Android device. If you are using the same tablet/phone, Android "wireless debugging" is recommended:
+`flutter run` needs ADB inside Termux to see the Android device. For the same tablet/phone, use Android "wireless debugging":
 
 ```bash
 pkg install android-tools
@@ -180,13 +180,13 @@ flutter devices
 flutter run -d <device_id>
 ```
 
-If `flutter doctor` shows no connected device, it only means ADB is not connected yet, not that the SDK is broken.
+If `flutter doctor` shows no connected device, connect ADB. The SDK works.
 
 ## Common Problems
 
 ### `PLATFORM_ABI_LIST` unresolved
 
-This means the post-install Flutter Gradle plugin template or the Gradle cache is stale. After updating to the main deb, run:
+The post-install Flutter Gradle plugin template or the Gradle cache is stale. After updating to the main deb, run:
 
 ```bash
 bash $PREFIX/share/flutter/post_install.sh
@@ -197,7 +197,7 @@ flutter build apk --release --target-platform android-arm64 --no-tree-shake-icon
 
 ### AAPT2 / compileSdk Errors
 
-Always use API 36 and point to the Termux ARM64 aapt2 (post-install falls back to 35/34 if aapt2 cannot load android-36):
+Use API 36 and point to the Termux ARM64 aapt2 (post-install falls back to 35/34 if aapt2 cannot load android-36):
 
 ```properties
 android.aapt2FromMavenOverride=/data/data/com.termux/files/usr/bin/aapt2
@@ -225,7 +225,7 @@ pkg clean
 
 ### Need an arm / x64 APK
 
-Not supported at the moment. This project only provides the ARM64 Android target, so use:
+This project provides only the ARM64 Android target, so use:
 
 ```bash
 flutter build apk --release --target-platform android-arm64

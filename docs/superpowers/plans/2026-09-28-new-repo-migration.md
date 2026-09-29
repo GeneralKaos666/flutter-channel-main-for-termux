@@ -1,8 +1,9 @@
 # New Repo Migration Implementation Plan
 
-> **Status (2026-09-29): superseded, kept as history.** The repo already
-> lives at `GeneralKaos666/prerelease-flutter-for-termux` on `main`
-> (`git remote -v` confirms `origin` points there). The `OLD=GeneralKaos666/flutter-for-termux`
+> **Status (2026-09-29): superseded, kept as history.** The migration
+> target already matches this tree: `origin` points at
+> `GeneralKaos666/prerelease-flutter-for-termux` on `main` (check with
+> `git remote -v`). The `OLD=GeneralKaos666/flutter-for-termux`
 > strings below never matched this tree outside this plan file, and
 > `verify_release_asset.py` already defaults to the `prerelease-` repo.
 > No push happened under this plan; keep the steps as the migration
@@ -10,13 +11,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Push current `flutter-main-for-termux` branch as `main` of a new empty repo with all hardcoded `GeneralKaos666/flutter-for-termux` URLs migrated.
+**Goal:** Push the current `flutter-main-for-termux` branch as `main` of a new empty repo and migrate all hardcoded `GeneralKaos666/flutter-for-termux` URLs.
 
 **Architecture:** Keep full history (`git push <new-remote> flutter-main-for-termux:main`). Sed `OLD_OWNER/OLD_REPO` -> `NEW_OWNER/NEW_REPO` across installers/docs/scripts plus the drift-check regex that rewrites URLs, then run the lightweight verification suite before any push.
 
 **Tech Stack:** git, `scripts/ci/check_version_drift.py` (+ `--fix`), `scripts/ci/check_repo.py`, `test_build.py`, GitHub releases (`.deb` asset flows in `build.yml` / `build-deb.yml`).
 
-**Spec:** This conversation: "create a new empty repo (e.g. `flutter-main-for-termux`), then push this branch as its `main`" with caveats that installers/`DEB_URL`s/docs point at `GeneralKaos666/flutter-for-termux` and drift checks pin those URLs.
+**Spec:** This conversation: "create a new empty repo (e.g. `flutter-main-for-termux`), then push this branch as its `main`": installers/`DEB_URL`s/docs point at `GeneralKaos666/flutter-for-termux` and drift checks pin those URLs.
 
 ## Global Constraints
 
@@ -26,17 +27,17 @@
 - `python scripts/ci/generate_versions.py --check`, `python scripts/ci/check_version_drift.py`, `python scripts/ci/check_repo.py`, `git diff --check` must pass.
 - New docs live under `docs/`; root markdown allowlist enforced by `check_repo.py`.
 - Every `.sh` keeps `#!` + LF-only endings; never commit `scratch/`, `*.bak`, `*.receipt.json`, test caches.
-- `patches/dart.new.patch` stays a symlink to `patches/dart.patch` — edit `dart.patch` only.
+- `patches/dart.new.patch` stays a symlink to `patches/dart.patch`: edit `dart.patch` only.
 - Do not run `patch_engine/patch_dart/patch_skia` right after `sync` (hooks already applied them).
 - Only ARM64 packaging is supported; `build()` ninja target list is contract (asserted by `test_build.py`).
 
 ## Review Focus
 
-- Old release links cached on-device/in docs keep downloading from `GeneralKaos666/flutter-for-termux` after migration; users expect the new repo to serve its own releases.
+- Old release links cached on-device/in docs still resolve to `GeneralKaos666/flutter-for-termux` after migration; serve new releases from the new repo.
 - `check_version_drift.py:95` autofix regex hardcodes the old owner/repo, so a partial sed reintroduces old URLs on next `--fix` run.
 - `verify_release_asset.py` defaults `GITHUB_REPOSITORY` to `GeneralKaos666/flutter-for-termux`; CI on the new repo passes via env, but local runs validate the wrong repo.
 - `git push <new-remote> flutter-main-for-termux:main` to a non-empty repo with README rejects or creates divergent `main`; new repo must be empty.
-- Existing stable release/download links break on move; consumers expect a redirect note or archived pointer in the old repo.
+- Existing stable release/download links break on move; leave a redirect note or archived pointer in the old repo.
 
 ---
 
@@ -64,7 +65,7 @@ Expected: `git ls-remote https://github.com/<NEW_OWNER>/<NEW_REPO>.git` shows no
 - [ ] **Step 3: Verify auth can write to new repo**
 
 Run: `git ls-remote https://github.com/<NEW_OWNER>/<NEW_REPO>.git`
-Expected: exit 0, empty output (no heads) — proves read; write proven in Task 4 push.
+Expected: exit 0, empty output (no heads). That proves read access; the Task 4 push proves write access.
 
 ---
 
@@ -154,13 +155,13 @@ Expected: `To https://github.com/<NEW_OWNER>/<NEW_REPO>.git * [new branch] flutt
 Run: `git ls-remote <NEW_URL> refs/heads/main` and compare to `git rev-parse flutter-main-for-termux`
 Expected: SHAs match; `git log <NEW_URL main> --oneline -3` shows `cb61e8a` chain.
 
-- [ ] **Step 4: Optionally add `new-origin` remote locally (do not replace `origin` yet)**
+- [ ] **Step 4: Add `new-origin` remote (optional; do not replace `origin` yet)**
 
 Run: `git remote add new-origin https://github.com/<NEW_OWNER>/<NEW_REPO>.git; git remote -v`
 Expected: `origin` still points at old repo; `new-origin` points at new repo. Do not retarget `origin` until release-workflow destination (`build.yml` publishes to whatever repo it runs in) is confirmed.
 
 - [ ] **Step 5: Decide old-repo pointer (manual, no automation in plan)**
 
-Leave old releases/downloads intact. If clean break desired, add archive note in old repo README after push — separate commit, not part of this push.
+Leave old releases/downloads intact. For a clean break, add an archive note in the old repo README after push: separate commit, not part of this push.
 Run: none (decision).
 Expected: explicit user ack that old `releases/download/...` links now diverge.

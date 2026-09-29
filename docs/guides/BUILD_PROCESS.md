@@ -1,6 +1,6 @@
 # Flutter Termux Build Process Document
 
-This document records in detail the complete process of building Flutter for Termux, to serve as a reference for future version upgrades.
+This document records the process of building Flutter for Termux for future version upgrades.
 
 ## Table of Contents
 
@@ -60,10 +60,7 @@ python3 build.py sync
 
 ### Stage 2: Patches
 
-Patches are applied automatically during `sync` (see above) via the `.gclient`
-`custom_hooks`. Applying them manually is only needed to re-test or rebase a
-patch against a fresh checkout — and only after a `git checkout` / fresh
-`gclient sync -D` if the hook already applied them:
+The `.gclient` `custom_hooks` apply patches during `sync` (see above). You apply them by hand to re-test or rebase a patch against a fresh checkout, and after a `git checkout` / fresh `gclient sync -D` if the hook already applied them:
 
 ```bash
 # Apply Termux adaptation patches
@@ -72,12 +69,12 @@ python3 build.py patch --file=./patches/dart.patch --path=engine/src/flutter/thi
 python3 build.py patch --file=./patches/skia.patch --path=engine/src/flutter/third_party/skia
 ```
 
-The patch files are located in the `patches/` directory; the main changes:
+You find the patch files in `patches/`. The main changes:
 - `patches/engine.patch` - Flutter Engine's Termux toolchain configuration
 - `patches/dart.patch` - Dart SDK / VM Termux adaptation
 - `patches/skia.patch` - Skia Android/bionic build adaptation
 
-ARM64-only APK enforcement is done at install time by `post_install.sh`, not at build time.
+`post_install.sh` enforces ARM64-only APK at install time. The build itself does not enforce it.
 
 ### Stage 3: Build Sysroot
 
@@ -86,7 +83,7 @@ ARM64-only APK enforcement is done at install time by `post_install.sh`, not at 
 python3 build.py sysroot --arch=arm64
 ```
 
-This downloads the required library files from the official Termux repo.
+You download the required library files from the official Termux repo with this command.
 
 ### Stage 4: Build Linux Components
 
@@ -98,11 +95,11 @@ python3 build.py configure --arch=arm64 --mode=debug
 python3 build.py build --arch=arm64 --mode=debug --jobs=24
 ```
 
-**Important**: The `build()` ninja invocation includes `flutter/build/archives:dart_sdk_archive`, so the dart binary is produced as part of the standard build (no separate build step).
+The `build()` ninja invocation includes `flutter/build/archives:dart_sdk_archive`, so you get the dart binary as part of the standard build. You run no separate build step.
 
 ### Stage 5: Build Android gen_snapshot (Optional, for APK Builds)
 
-> Standard builds ship gen_snapshot in the deb artifacts; no separate Android configure/build step is required.
+> You get gen_snapshot in the deb artifacts from standard builds. You run no separate Android configure/build step.
 
 ### Stage 6: Package the deb
 
@@ -139,7 +136,7 @@ config("executable_ldconfig") {
 
 ### 2. Bionic Linker Issue
 
-**Problem**: When the dart binary uses the glibc linker, the following appears:
+**Problem**: The dart binary uses the glibc linker, and you see:
 ```
 error: "dart": executable's TLS segment is underaligned
 ```
@@ -148,9 +145,9 @@ error: "dart": executable's TLS segment is underaligned
 
 ### 3. Dependencies Issue
 
-**Problem**: `-llog` and `-lm` cannot be found at link time
+**Problem**: The link cannot find `-llog` and `-lm` at link time
 
-**Solution**: Add the following to the `runtime_library` configuration:
+**Solution**: Add this to the `runtime_library` configuration:
 ```gn
 ldflags = [
   "-stdlib=libstdc++",
@@ -191,7 +188,7 @@ error: typedef redefinition with different types ('__mbstate_t' vs 'struct mbsta
 
 **Cause**: The sysroot contains both glibc and bionic headers
 
-**Current Status**: Building in debug mode is used as a workaround
+**Current Status**: You build in debug mode as a workaround
 
 **Future Fix Direction**: Clean up the sysroot and keep only the bionic headers
 
@@ -204,9 +201,9 @@ Flag dedup_instructions is false in snapshot, but dedup_instructions is always t
 
 **Cause**:
 - `dartaotruntime_product` expects a product-mode snapshot
-- `frontend_server_aot.dart.snapshot` was built in debug mode
+- You built `frontend_server_aot.dart.snapshot` in debug mode
 
-**Future Fix Direction**: Need to build a release-mode `frontend_server_aot.dart.snapshot`
+**Future Fix Direction**: Build a release-mode `frontend_server_aot.dart.snapshot`
 
 ### Issue 4: android-arm/android-x64 gen_snapshot Cannot Be Built
 
@@ -224,7 +221,7 @@ Flag dedup_instructions is false in snapshot, but dedup_instructions is always t
 
 1. ARM64 Android device (Android 11+)
 2. Install Termux (from F-Droid)
-3. Ensure there is an SSH or ADB connection
+3. Connect over SSH or ADB
 
 ### Test Steps
 
@@ -269,8 +266,8 @@ flutter build linux --release
 
 ### 1. Version Check
 
-Confirm that the version numbers in the following files are consistent
-(`python scripts/ci/check_version_drift.py` enforces most of this;
+Confirm the version numbers in these files match
+(`python scripts/ci/check_version_drift.py` enforces this;
 run it with `--fix` to auto-rewrite drifted refs from `build.toml`):
 - `build.toml` - `tag`, `dart_version`, `framework_revision`, `framework_commit_date`, `devtools_version`, `[ndk] version`, `[android] compile_sdk/target_sdk`, `[package] pkg_rel`
 - `scripts/install/versions_common.sh` - generated from `build.toml` (`python scripts/ci/generate_versions.py --check`)
@@ -323,23 +320,23 @@ python3 build.py sync  # The .gclient custom_hooks try to apply the patches
 
 ### 3. Re-check Patches
 
-The `sync` above already applied the patches via the `.gclient` `custom_hooks`
-(or failed loudly if they no longer apply). To re-test a specific patch on a
-clean tree (reset first — the hooks may have applied it), run:
+You applied the patches with the `sync` above through the `.gclient` `custom_hooks`
+(or the command failed if they no longer apply). To re-test a specific patch on a
+clean tree (reset first, the hooks may have applied it), run:
 
 ```bash
 # You may need to update the patches to adapt to the new version
 python3 build.py patch --file=./patches/engine.patch
 ```
 
-If patch application fails, you need to manually update `patches/engine.patch`:
+If patch application fails, update `patches/engine.patch`:
 1. Review the conflicts
-2. Resolve them manually
+2. Resolve them
 3. Regenerate the patch
 
 ### 4. Full Build and Test
 
-Build and test by following the process described above.
+Build and test with the stages above.
 
 ---
 

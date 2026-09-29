@@ -2,7 +2,7 @@
 
 **Flutter main / Dart 3.14.0-271.0.dev for Android-bionic ARM64 hosts.**
 
-This release updates the Termux Flutter SDK package to Flutter main. It incorporates all post-v3.44.2 installer hardening, dynamic JAVA_HOME auto-detection, robust PREFIX quoting under `set -euo pipefail`, and refreshed Termux toolchain sysroot packages.
+This package brings the Termux Flutter SDK to Flutter main. You get post-v3.44.2 installer hardening, dynamic JAVA_HOME auto-detection, PREFIX quoting hardened for `set -euo pipefail`, and refreshed Termux toolchain sysroot packages.
 
 ## Package
 
@@ -50,18 +50,18 @@ Device smoke on Samsung SM-X716B / Android 16 / ARM64 Termux:
 
 ### Flutter main update
 
-- Updated package metadata, NDK configurations, and patches to track Flutter main (Dart 3.14.0-271.0.dev, framework `8db5526` dated `2026-09-26`).
-- Keeps Flutter CLI on Termux JIT Dart while preserving engine VM tools for snapshots.
+- Track Flutter main with updated package metadata, NDK configurations, and patches (Dart 3.14.0-271.0.dev, framework `8db5526` dated `2026-09-26`).
+- Keep the Flutter CLI on Termux JIT Dart and preserve engine VM tools for snapshots.
 
 ### Installer & Environment Hardening
 
-- Fully guarded `$PREFIX` paths against whitespace and `set -u` unbound variable errors.
-- Dynamic `JAVA_HOME` discovery across Termux OpenJDK installations.
-- Automated dependency resolution including OpenJDK 21 and 7zip.
+- Guard `$PREFIX` paths against whitespace and `set -u` unbound variable errors.
+- Discover `JAVA_HOME` across Termux OpenJDK installations at runtime.
+- Resolve dependencies at install time, including OpenJDK 21 and 7zip.
 
 ### Post-install Dart VM detection fix
 
-- Fixed the `post_install.sh` system Dart VM replacement logic to directly inspect the target path (`/data/data/com.termux/files/usr/bin/dart`) rather than using `command -v`, preventing path shadowing issues.
+- Fixed the `post_install.sh` system Dart VM replacement logic to inspect the target path (`/data/data/com.termux/files/usr/bin/dart`) instead of `command -v`, stopping path shadowing.
 
 ### Technical Details
 
@@ -70,7 +70,7 @@ Device smoke on Samsung SM-X716B / Android 16 / ARM64 Termux:
 
 ## Required per-project Android settings
 
-To build APKs successfully on Termux, you must configure the following project properties:
+To build APKs on Termux, configure these project properties:
 
 ```properties
 # android/gradle.properties
@@ -105,18 +105,18 @@ flutter build apk --release --target-platform android-arm64 --no-tree-shake-icon
 
 - Android APK targets are ARM64-only (`android-arm64` / `arm64-v8a`).
 - `flutter run` for Android requires ADB pairing/connection from inside Termux.
-- Some Flutter doctor warnings about unknown channel/source are expected for this repackaged SDK.
-- Termux aapt2 (16.0.0.4) is used via `android.aapt2FromMavenOverride`; projects default to `compileSdk`/`targetSdk` 36 with a fail-closed fallback to 35/34 when aapt2 cannot load the newest platform.
+- You can ignore Flutter doctor warnings about unknown channel/source in this repackaged SDK.
+- You point `android.aapt2FromMavenOverride` at Termux aapt2 (16.0.0.4); you default projects to `compileSdk`/`targetSdk` 36, with a fail-closed fallback to 35/34 when aapt2 cannot load the newest platform.
 
 ## Previous releases
 
 ### v3.41.5 (2026-04-13)
 
-- Flutter SDK upgraded to 3.41.5 (Dart 3.11.3).
+- Upgraded the Flutter SDK to 3.41.5 (Dart 3.11.3).
 - Added `flutter build linux` support.
 - Fixed post-install sed delimiter and flutter_tools snapshot invalidation.
 
 ### v3.35.0 (2026-01-07)
 
 - First public release.
-- APK build and hot reload support for ARM64 Termux.
+- Added APK build and hot reload support for ARM64 Termux.
