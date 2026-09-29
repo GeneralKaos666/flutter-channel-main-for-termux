@@ -151,32 +151,26 @@ def load_build_config(root_path: Path | None = None) -> dict[str, str]:
     package_cfg = data.get("package", {})
     pkg_rel = str(package_cfg.get("pkg_rel", "") or "")
 
-    # Mirror utils.deb_version + utils.flutter_to_deb_upstream (dpkg versions
-    # must start with a digit; branch tags like 'main' use the framework
-    # version from `flutter --version --machine` in Debian tilde form plus
-    # the snapshot stamp, e.g. '3.47.6~0.0.pre+main.20260926.8db5526-1').
-    # Kept inline: this script runs with scripts/ci on sys.path, where
-    # `import utils` fails.
-    def _fw_upstream(fw: str) -> str:
-        fw = str(fw or "").strip()
-        if not fw or fw == "0.0.0-unknown":
-            return ""
-        if "-" in fw:
-            base, rest = fw.split("-", 1)
-            return f"{base}~{rest.replace('-', '.')}"
-        return fw
+    # Single-sourced from version_lib (same math as utils.deb_version +
+    # utils.flutter_to_deb_upstream: dpkg versions must start with a digit;
+    # branch tags like 'main' use the framework version from `flutter
+    # --version --machine` in Debian tilde form plus the snapshot stamp,
+    # e.g. '3.47.6~0.0.pre+main.20260926.8db5526-1').
+    try:
+        from version_lib import flutter_to_deb_upstream, snapshot_stamp
+    except ImportError:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from version_lib import flutter_to_deb_upstream, snapshot_stamp
 
-    # Mirror utils.snapshot_stamp so each main refresh renames the asset.
-    stamp_day = (
-        framework_commit_date.split(" ")[0].replace("-", "") if framework_commit_date else ""
-    )
-    snapshot = (
-        f"{stamp_day}.{str(framework_revision)[:7]}" if stamp_day and framework_revision else ""
-    )
+    # Single-sourced from version_lib so each main refresh renames the asset.
+    if framework_commit_date and framework_revision:
+        snapshot = snapshot_stamp(framework_commit_date, framework_revision)
+    else:
+        snapshot = ""
     if str(tag)[:1].isdigit():
         deb_tag = str(tag)
     else:
-        fw_up = _fw_upstream(framework_version)
+        fw_up = flutter_to_deb_upstream(framework_version)
         if fw_up:
             deb_tag = fw_up + (f"+main.{snapshot}" if snapshot else "")
         else:

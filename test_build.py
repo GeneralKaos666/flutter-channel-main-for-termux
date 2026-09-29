@@ -479,5 +479,25 @@ class SysrootLockTest(unittest.TestCase):
                     self.assertIn(field, pkg)
 
 
+def test_version_single_source_matches_build():
+    import os
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path("scripts/ci").resolve()))
+    import version_lib
+
+    import build
+
+    os.environ.setdefault("ANDROID_NDK", "/tmp/android-ndk")
+    b = build.Build()
+    assert b.release_tag == version_lib.release_tag(
+        b.framework_version, b.framework_commit_date, b.framework_revision
+    )
+    assert b.package_version == version_lib.deb_version(
+        b.tag, b.pkg_rel, b.snapshot, b.framework_version
+    )
+
+
 if __name__ == "__main__":
     unittest.main()

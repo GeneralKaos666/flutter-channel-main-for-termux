@@ -278,44 +278,28 @@ def main():
     expected_package_version = None
     default_asset = None
     if flutter_tag or explicit_release:
+        # Single-sourced from version_lib (same math as utils.deb_version,
+        # utils.release_tag, and utils.snapshot_stamp).
+        try:
+            from version_lib import asset_name, deb_version, release_tag, snapshot_stamp
+        except ImportError:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from version_lib import asset_name, deb_version, release_tag, snapshot_stamp
         fw_ver = str(flutter_cfg.get("framework_version", "") or "").strip()
-        fw_up = ""
-        if fw_ver and fw_ver != "0.0.0-unknown" and "-" in fw_ver:
-            _base, _rest = fw_ver.split("-", 1)
-            fw_up = f"{_base}~{_rest.replace('-', '.')}"
-        elif fw_ver and fw_ver != "0.0.0-unknown":
-            fw_up = fw_ver
         fw_date = str(flutter_cfg.get("framework_commit_date", "") or "")
         fw_rev = str(flutter_cfg.get("framework_revision", "") or "")
-        stamp_day = fw_date.split(" ")[0].replace("-", "") if fw_date else ""
-        snapshot = f"{stamp_day}.{fw_rev[:7]}" if stamp_day and fw_rev else ""
-        short = fw_rev[:7] if fw_rev else ""
+        if fw_date and fw_rev:
+            snapshot = snapshot_stamp(fw_date, fw_rev)
+        else:
+            snapshot = ""
         if explicit_release:
             expected_tag = str(explicit_release)
         elif flutter_tag[:1].isdigit():
             expected_tag = str(flutter_tag)
-        elif fw_up and stamp_day and short:
-            expected_tag = f"v{fw_up}.{stamp_day}.{short}"
-        elif fw_up and stamp_day:
-            expected_tag = f"v{fw_up}.{stamp_day}"
-        elif fw_up and short:
-            expected_tag = f"v{fw_up}.{short}"
-        elif fw_up:
-            expected_tag = f"v{fw_up}"
-        elif stamp_day and short:
-            expected_tag = f"vmain.{stamp_day}.{short}"
-        elif stamp_day:
-            expected_tag = f"vmain.{stamp_day}"
         else:
-            expected_tag = str(flutter_tag)
-        if flutter_tag[:1].isdigit():
-            deb_tag = str(flutter_tag)
-        elif fw_up:
-            deb_tag = fw_up + (f"+main.{snapshot}" if snapshot else "")
-        else:
-            deb_tag = f"0~{flutter_tag}" + (f".{snapshot}" if snapshot else "")
-        expected_package_version = f"{deb_tag}-{pkg_rel}" if pkg_rel else str(deb_tag)
-        default_asset = f"flutter_{expected_package_version}_aarch64.deb"
+            expected_tag = release_tag(fw_ver, fw_date, fw_rev) or str(flutter_tag)
+        expected_package_version = deb_version(flutter_tag, pkg_rel, snapshot, fw_ver)
+        default_asset = asset_name(flutter_tag, pkg_rel, snapshot, fw_ver)
     expected_asset = flutter_cfg.get("asset_name") or default_asset
     expected_sha256 = flutter_cfg.get("sha256")
     expected_size = flutter_cfg.get("size")
