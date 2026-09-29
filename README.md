@@ -21,18 +21,22 @@ Release assets include:
 - `flutter_<tag>-<pkg_rel>_aarch64.deb.size.txt`
 - `inventory.txt`, `build_metadata.json`, `build_evidence.json`
 
-Download:
+Download (after the first main build publishes):
 
 ```bash
-TAG=3.47.5
-PKG_REL=1
-DEB="flutter_${TAG}-${PKG_REL}_aarch64.deb"
-BASE_URL="https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/${TAG}/"
+RELEASE_TAG=main
+DEB="flutter_0~main.20260926.8db5526-1_aarch64.deb"
+BASE_URL="https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/${RELEASE_TAG}/"
 
 curl -fSL -o "$DEB" "${BASE_URL}${DEB}"
 curl -fSL -o "${DEB}.sha256" "${BASE_URL}${DEB}.sha256"
 sha256sum -c "${DEB}.sha256"
 ```
+
+No hosted main-channel release exists yet. Build the deb yourself
+(see [Build guide](docs/guides/BUILD_GUIDE.md)) and `adb push` it until
+the first main build publishes. Installers fail closed on
+`EXPECTED_SHA256` until the hash refreshes.
 
 ## Install
 
@@ -60,10 +64,9 @@ This installs the release package plus the on-device Android SDK/toolchain
 ### Manual install
 
 ```bash
-TAG=3.47.5
-PKG_REL=1
-DEB="flutter_${TAG}-${PKG_REL}_aarch64.deb"
-BASE_URL="https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/${TAG}/"
+RELEASE_TAG=main
+DEB="flutter_0~main.20260926.8db5526-1_aarch64.deb"
+BASE_URL="https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/${RELEASE_TAG}/"
 
 curl -fSL -o "$DEB" "${BASE_URL}${DEB}"
 curl -fSL -o "${DEB}.sha256" "${BASE_URL}${DEB}.sha256"

@@ -1,6 +1,6 @@
 # Flutter Version Upgrade Guide
 
-This document explains how to upgrade Termux Flutter from the current 3.47.5 to a new version, and lists the risk points in Dart / Flutter Tools / Gradle plugins that must be re-checked after 3.47.5.
+This document explains how to upgrade Termux Flutter from the current main pins (`build.toml [flutter] tag='main'`, Dart `3.14.0-271.0.dev`) to a new revision, and lists the risk points in Dart / Flutter Tools / Gradle plugins that must be re-checked after the main move.
 
 ---
 
@@ -20,7 +20,7 @@ This document explains how to upgrade Termux Flutter from the current 3.47.5 to 
 □ Step 11: Publish a GitHub Release
 ```
 
-## Must-Check Items After 3.47.5
+## Must-Check Items (main channel)
 
 | Item | Why it matters | How to check |
 |------|------------|----------|
@@ -38,7 +38,7 @@ Edit `build.toml`:
 
 ```toml
 [flutter]
-tag = '3.XX.Y'    # ← change to the new version number
+tag = 'main'    # ← stable uses '3.XX.Y'; this branch tracks 'main'
 ```
 
 > Other fields usually don't need to change (NDK path, jobs, etc.).
@@ -247,9 +247,9 @@ python3 build.py debuild --arch=arm64
 This will:
 1. Sync the latest `scripts/`, `patches/`, `package.yaml`, `build.toml` from Windows to WSL
 2. Collect all build outputs according to `package.yaml`
-3. Package them into `flutter_3.XX.Y_aarch64.deb`
+3. Package them into `flutter_0~main.20260926.8db5526-1_aarch64.deb` (derived from `build.toml` via `Build.output('arm64')`; never hardcode a stamped name)
 
-> Output path: `~/termux-flutter/flutter_3.XX.Y_aarch64.deb`
+> Output path: `release/flutter_0~main.20260926.8db5526-1_aarch64.deb`
 
 ---
 
@@ -257,13 +257,13 @@ This will:
 
 ```powershell
 # Copy from WSL to Windows
-Copy-Item "\\wsl.localhost\Ubuntu\home\YOUR_USER\termux-flutter\flutter_3.XX.Y_aarch64.deb" .
+Copy-Item "\\wsl.localhost\Ubuntu\home\YOUR_USER\termux-flutter\release\flutter_0~main.20260926.8db5526-1_aarch64.deb" .
 
 # Push to the device
-adb push flutter_3.XX.Y_aarch64.deb /data/local/tmp/
+adb push flutter_0~main.20260926.8db5526-1_aarch64.deb /data/local/tmp/
 
 # Install in Termux
-dpkg -i /data/local/tmp/flutter_3.XX.Y_aarch64.deb
+dpkg -i /data/local/tmp/flutter_0~main.20260926.8db5526-1_aarch64.deb
 apt-get install -f
 bash $PREFIX/share/flutter/post_install.sh
 source $PREFIX/etc/profile.d/flutter.sh
@@ -271,7 +271,7 @@ source $PREFIX/etc/profile.d/flutter.sh
 # Verify
 flutter doctor -v
 flutter create testapp && cd testapp
-flutter build apk --release --target-platform android-arm64
+flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons
 flutter build linux --release
 ```
 
@@ -299,13 +299,14 @@ If the new Flutter version changes any of these locations, they need to be updat
 
 ```powershell
 # Update version
-$VER = "3.XX.Y"
+$VER = "main"
+$DEB = "flutter_0~main.20260926.8db5526-1_aarch64.deb"
 
 # Create the release
-gh release create "v$VER" `
+gh release create "$VER" `
   --title "Flutter $VER for Termux ARM64" `
   --notes-file docs/releases/RELEASE_NOTES.md `
-  "flutter_${VER}_aarch64.deb"
+  "$DEB"
 ```
 
 Remember to update:
@@ -390,7 +391,7 @@ flutter-for-termux/
 │
 ├── patches/
 │       └── engine.patch       # Flat, tag-agnostic patches
-│           dart.patch
+│           dart.patch        # edit this file only; dart.new.patch stays a symlink to it
 │           skia.patch
 │
 ├── scripts/

@@ -7,18 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tracking main
+- Moved `build.toml [flutter] tag` to `main` with Dart `3.14.0-271.0.dev`, framework `8db5526` (`2026-09-26 15:45:14 -0700`), DevTools `2.61.0-dev.0`.
+- Snapshot-stamped the deb as `flutter_0~main.20260926.8db5526-1_aarch64.deb` via `utils.deb_version()` / `snapshot_stamp()` so each refresh sorts as an upgrade.
+- No hosted main-channel release exists yet; size/SHA stay `TBD` and installers fail closed until the first main build publishes.
+- Documented the refresh loop (`clone --force` → verify patches → pin versions → drift `--fix` → full verification) in `BUILD_GUIDE.md`.
+
 ### Infrastructure & CI
 - Lifted `compileSdk`/`targetSdk` default from 34 to 36 (fail-closed ladder 36→35→34) using Termux aapt2 16.0.0.4 (Android Build-Tools), driven by `build.toml` `[android]` and applied per-project by `post_install.sh`/`flutter_project_config.sh`.
 - Centralized installer version/package metadata in `scripts/install/versions_common.sh`, sourced by `lib_common.sh` and drift-verified against `build.toml`.
 - Modernized packages: single JDK (`openjdk-21`), `7zip`, dynamic NDK clang detection, and an `apt-mark hold aapt2` hardening with a `TERMUX_NO_HOLD_AAPT2` opt-out.
 - Bumped host deps (`requirements.txt`) and CI/CD actions to `actions/checkout@v7.0.1` / `setup-python@v7.0.0` / `upload-artifact@v7.0.1`, Python 3.12.
-- Restored the GitHub-hosted `build.yml` full `.deb` build (auto-triggers on `CI` success on `main` or manual dispatch, publishes a release), modernized to an inline `depot_tools` bootstrap with the engine/dart/skia patches applied; `build-deb.yml` remains as the self-hosted fallback.
+- Restored the GitHub-hosted `build.yml` full `.deb` build (manual dispatch only, publishes a prerelease behind an asset-immutability guard), modernized to an inline `depot_tools` bootstrap with the engine/dart/skia patches applied; `build-deb.yml` remains as the self-hosted fallback.
 - `test_build.py` version expectations are now fully derived from `build.toml` at test time (bump-agnostic).
 
 ### Changed
 - NDK is configured from `build.toml [ndk] version` everywhere (docs, `build-deb.yml` fallback to `/opt/android-ndk-r{M}`); `pytest.ini` `testpaths` points at `test_build.py`.
 - Retired the Mode-A "pin API 34" constraint documented in the AAPT2 analysis.
-- Reoriented repository documentation to English-first: `README.md` is now the English primary (promoted from `README_EN.md`), the Chinese README moved to `README_ZH.md`, and the four `docs/guides/*` documents gained English canonicals with Chinese `*_ZH.md` twins. Translated user-facing messages and comments in scripts to English. Removed stale `.orig` merge artifacts.
+- Reoriented repository documentation to English-first: `README.md` is the English primary, and user-facing script messages use English. Removed stale `.orig` merge artifacts.
 
 ## [3.44.9-termux] - 2026-07-04
 

@@ -342,9 +342,12 @@ register_patch "chrome" "$FLUTTER_ROOT/packages/flutter_tools/lib/src/web/chrome
 
 patch_build_linux() {
 	if grep -F -q "false /* Termux" "$1"; then return 0; fi
-	grep -q "if (!globals.platform.isLinux)" "$1" || return 1
+	grep -q "platform.isLinux" "$1" || return 1
 	sed -i "s@if (!globals.platform.isLinux)@if (false /* Termux: allow linux build */)@" "$1"
+	sed -i "s@if (!platform.isLinux)@if (false /* Termux: allow linux build */)@" "$1"
 	sed -i "s@!featureFlags.isLinuxEnabled || !globals.platform.isLinux@!featureFlags.isLinuxEnabled /* Termux: visible */@" "$1"
+	sed -i "s@!_featureFlags.isLinuxEnabled || !toolContext.platform.isLinux@!_featureFlags.isLinuxEnabled /* Termux: visible */@" "$1"
+	grep -F -q "Termux:" "$1" || return 1
 }
 register_patch "build_linux" "$FLUTTER_ROOT/packages/flutter_tools/lib/src/commands/build_linux.dart" patch_build_linux
 
@@ -607,19 +610,54 @@ if [ "$MODE" == "rollback" ]; then
 	exit 0
 fi
 
+# Resolve the engine revision for steps that need it.
+# bin/internal/engine.version is only tracked on stable/beta releases; on main
+# checkouts it is absent by design, so fall back to the shipped manifest and
+# finally git HEAD (mirrors utils.engine_version()). Never hardcodes a
+# revision: every source is derived from the shipped SDK or the live checkout.
+resolve_engine_revision() {
+	local rev=""
+	if [ -s "$FLUTTER_ROOT/bin/internal/engine.version" ]; then
+		rev="$(cat "$FLUTTER_ROOT/bin/internal/engine.version" 2>/dev/null | tr -d '\n\r')"
+	fi
+	if [ -z "$rev" ] && [ -n "${FLUTTER_PREBUILT_ENGINE_VERSION:-}" ]; then
+		rev="$FLUTTER_PREBUILT_ENGINE_VERSION"
+	fi
+	if [ -z "$rev" ]; then
+		local mf="$PREFIX/share/flutter/manifest.json"
+		if [ ! -f "$mf" ] && [ -f "$FLUTTER_ROOT/bin/cache/canonical_manifest.json" ]; then
+			mf="$FLUTTER_ROOT/bin/cache/canonical_manifest.json"
+		fi
+		if [ -f "$mf" ]; then
+			rev="$(grep -o '"engine_revision": *"[^"]*"' "$mf" 2>/dev/null | cut -d'"' -f4 || true)"
+		fi
+	fi
+	if [ -z "$rev" ] && [ -d "$FLUTTER_ROOT/.git" ]; then
+		if [ -x "$PREFIX/bin/git" ]; then
+			rev="$("$PREFIX/bin/git" -C "$FLUTTER_ROOT" rev-parse HEAD 2>/dev/null | tr -d '\n\r' || true)"
+		elif command -v git >/dev/null 2>&1; then
+			rev="$(git -C "$FLUTTER_ROOT" rev-parse HEAD 2>/dev/null | tr -d '\n\r' || true)"
+		fi
+	fi
+	printf '%s' "$rev"
+}
+
 # Run apply_patches for --apply
 apply_patches
 
 # 1.5b. Fix engine.stamp and engine.realm (required for Maven artifact resolution)
 echo "[1.5b/13] Fixing engine.stamp and engine.realm, and injecting framework version tag..."
 mkdir -p "$FLUTTER_ROOT/bin/cache"
-# Fail closed: never inject a stale engine revision fallback; the revision must
-# come from the shipped SDK, not a hardcoded constant.
-if [ ! -s "$FLUTTER_ROOT/bin/internal/engine.version" ]; then
-	echo "Error: $FLUTTER_ROOT/bin/internal/engine.version missing or empty; cannot determine engine revision" >&2
+local_eng_ver="$(resolve_engine_revision)"
+if [ -z "$local_eng_ver" ]; then
+	echo "Error: engine revision unavailable (bin/internal/engine.version, manifest.json, and git HEAD all missing); cannot determine engine revision" >&2
 	exit 1
 fi
-local_eng_ver="$(cat "$FLUTTER_ROOT/bin/internal/engine.version" 2>/dev/null | tr -d '\n\r')"
+# Persist for downstream readers (flutter tooling, snapshot steps) that cat the file directly.
+if [ ! -s "$FLUTTER_ROOT/bin/internal/engine.version" ]; then
+	echo -n "$local_eng_ver" >"$FLUTTER_ROOT/bin/internal/engine.version" 2>/dev/null || true
+fi
+export FLUTTER_PREBUILT_ENGINE_VERSION="$local_eng_ver"
 echo -n "$local_eng_ver" >"$FLUTTER_ROOT/bin/cache/engine.stamp" 2>/dev/null || true
 echo -n "$local_eng_ver" >"$FLUTTER_ROOT/bin/cache/engine_stamp.stamp" 2>/dev/null || true
 echo -n >"$FLUTTER_ROOT/bin/cache/engine.realm" 2>/dev/null || true
@@ -837,12 +875,27 @@ if is_synthetic_repo "$FLUTTER_ROOT"; then
 	fi
 fi
 
+# Prints the full semantic version (e.g. 3.14.0-271.0.dev or 3.44.0)
+# reported by a dart binary. Falls back to the numeric X.Y.Z parse for
+# atypical version banners.
+dart_full_version() {
+	local raw
+	raw="$("$1" --version 2>&1 || true)"
+	local full
+	full="$(printf '%s\n' "$raw" | sed -n 's/.*Dart SDK version: \([^ ]*\).*/\1/p' | head -1 | tr -d '\r')"
+	if [ -n "$full" ]; then
+		printf '%s' "$full"
+	else
+		printf '%s\n' "$raw" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1
+	fi
+}
+
 # Determine and verify semantic Dart SDK version (never engine cache stamp)
 EFFECTIVE_DART_VER=""
 if [ -x "$DART_SDK/bin/dart" ]; then
-	EFFECTIVE_DART_VER="$("$DART_SDK/bin/dart" --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")"
+	EFFECTIVE_DART_VER="$(dart_full_version "$DART_SDK/bin/dart")"
 elif command -v dart >/dev/null 2>&1; then
-	EFFECTIVE_DART_VER="$(dart --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")"
+	EFFECTIVE_DART_VER="$(dart_full_version dart)"
 fi
 
 if [ -n "$EFFECTIVE_DART_VER" ]; then
@@ -889,10 +942,10 @@ mv -f "$TMP_VER_JSON" "$FLUTTER_ROOT/bin/cache/flutter.version.json"
 chmod 644 "$FLUTTER_ROOT/bin/cache/flutter.version.json"
 echo "  ✓ Canonical flutter.version.json generated ($CANONICAL_FLUTTER_VER stable, framework=$CANONICAL_FRAMEWORK_REV)"
 
-# Get engine version for downloads (fail closed; no stale fallback)
-ENGINE_VERSION=$(cat "$FLUTTER_ROOT/bin/internal/engine.version" 2>/dev/null || true)
+# Get engine version for downloads (resolved, never hardcoded; see resolve_engine_revision)
+ENGINE_VERSION="$(resolve_engine_revision)"
 if [ -z "$ENGINE_VERSION" ]; then
-	echo "Error: engine revision unavailable ($FLUTTER_ROOT/bin/internal/engine.version); cannot download Dart SDK snapshots" >&2
+	echo "Error: engine revision unavailable (bin/internal/engine.version, manifest.json, and git HEAD all missing); cannot download Dart SDK snapshots" >&2
 	exit 1
 fi
 
@@ -1016,14 +1069,22 @@ echo "[1.5f/13] Generating flutter_tools package_config.json..."
 FLUTTER_TOOLS_DIR=$FLUTTER_ROOT/packages/flutter_tools
 PKG_CONFIG=$FLUTTER_TOOLS_DIR/.dart_tool/package_config.json
 
-# Rewrite WSL build machine paths in prebuilt package_config.json to local FLUTTER_ROOT
-if [ -f "$PKG_CONFIG" ]; then
-	echo "  Rewriting package_config.json paths to $FLUTTER_ROOT..."
-	sed -i "s|file://.*/flutter/|file://$FLUTTER_ROOT/|g" "$PKG_CONFIG" 2>/dev/null || true
-	echo "  ✓ package_config.json paths updated"
+# A shipped package_config.json goes stale as soon as the checkout moves past
+# the deb pin (pubspec.yaml/lock newer than the config): dependency versions
+# then no longer match the sources and the flutter_tools snapshot compile
+# fails with missing-member errors. Regenerate whenever stale.
+NEEDS_PUB_GET=0
+if [ ! -f "$PKG_CONFIG" ]; then
+	NEEDS_PUB_GET=1
+elif [ "$FLUTTER_TOOLS_DIR/pubspec.yaml" -nt "$PKG_CONFIG" ]; then
+	echo "  package_config.json older than pubspec.yaml, refreshing..."
+	NEEDS_PUB_GET=1
+elif [ -f "$FLUTTER_TOOLS_DIR/pubspec.lock" ] && [ "$FLUTTER_TOOLS_DIR/pubspec.lock" -nt "$PKG_CONFIG" ]; then
+	echo "  package_config.json older than pubspec.lock, refreshing..."
+	NEEDS_PUB_GET=1
 fi
 
-if [ ! -f "$PKG_CONFIG" ]; then
+if [ "$NEEDS_PUB_GET" -eq 1 ]; then
 	echo "  Running pub get for flutter_tools..."
 	cd "$FLUTTER_TOOLS_DIR"
 	$DART_SDK/bin/dart pub get --offline --suppress-analytics >/dev/null 2>&1 || (
@@ -1035,6 +1096,13 @@ if [ ! -f "$PKG_CONFIG" ]; then
 	else
 		echo "  ⚠ Offline environment: package_config.json generation deferred"
 	fi
+fi
+
+# Rewrite WSL build machine paths in prebuilt package_config.json to local FLUTTER_ROOT
+if [ -f "$PKG_CONFIG" ]; then
+	echo "  Rewriting package_config.json paths to $FLUTTER_ROOT..."
+	sed -i "s|file://.*/flutter/|file://$FLUTTER_ROOT/|g" "$PKG_CONFIG" 2>/dev/null || true
+	echo "  ✓ package_config.json paths updated"
 fi
 
 # 2. (removed) Android API 34 aapt2 workaround: compileSdk now follows COMPILE_SDK

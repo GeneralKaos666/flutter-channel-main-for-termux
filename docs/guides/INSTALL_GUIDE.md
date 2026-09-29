@@ -12,13 +12,13 @@ This guide covers `flutter_0~main.20260926.8db5526-1_aarch64.deb`, targeting the
 
 | Item | Value |
 |------|-------|
-| Flutter | 3.47.5 |
-| Flutter Tools Dart | 3.13.4 |
-| Dart VM (`dartvm`) | post-install `dartvm` resolves to Dart 3.13.4 (`android_arm64`) |
+| Flutter | main (framework `8db5526`, `2026-09-26 15:45:14 -0700`) |
+| Flutter Tools Dart | 3.14.0-271.0.dev |
+| Dart VM (`dartvm`) | post-install `dartvm` resolves to Dart 3.14.0-271.0.dev (`android_arm64`) |
 
-| Test device | Samsung SM-X716B / Android 16 / ARM64 |
-| deb size | 617,009,288 bytes (about 588 MiB) |
-| SHA256 | `6994580359002c6e0f6eb074d17a8ab3f9578e480e2aad83aa443474da3c9800` |
+| Test device | Samsung SM-X716B / Android 16 / ARM64 (reference smoke device) |
+| deb size | TBD (refresh on first main build) |
+| SHA256 | `TBD (refresh on first main build)` |
 
 ## System Requirements
 
@@ -98,7 +98,7 @@ flutter doctor -v
 
 Expected highlights:
 
-- `flutter --version` shows Flutter 3.47.5.
+- `flutter --version` shows Flutter main.
 - `dart --version` shows `android_arm64` (Termux JIT Dart).
 - `dartvm --version` shows `linux_arm64` (engine VM).
 
@@ -186,7 +186,7 @@ If `flutter doctor` shows no connected device, it only means ADB is not connecte
 
 ### `PLATFORM_ABI_LIST` unresolved
 
-This means the post-install Flutter Gradle plugin template or the Gradle cache is stale. After updating to the 3.47.5 deb, run:
+This means the post-install Flutter Gradle plugin template or the Gradle cache is stale. After updating to the main deb, run:
 
 ```bash
 bash $PREFIX/share/flutter/post_install.sh

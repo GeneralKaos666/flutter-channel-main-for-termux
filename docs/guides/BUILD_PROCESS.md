@@ -269,12 +269,17 @@ flutter build linux --release
 
 ### 1. Version Check
 
-Confirm that the version numbers in the following files are consistent:
-- `build.toml` - `tag` field
-- `install_flutter_complete.sh` - `FLUTTER_VERSION`
+Confirm that the version numbers in the following files are consistent
+(`python scripts/ci/check_version_drift.py` enforces most of this;
+run it with `--fix` to auto-rewrite drifted refs from `build.toml`):
+- `build.toml` - `tag`, `dart_version`, `framework_revision`, `framework_commit_date`, `devtools_version`, `[ndk] version`, `[android] compile_sdk/target_sdk`, `[package] pkg_rel`
+- `scripts/install/versions_common.sh` - generated from `build.toml` (`python scripts/ci/generate_versions.py --check`)
+- `scripts/install/post_install.sh` - `CANONICAL_*` markers
+- `scripts/install/flutter_termux_doctor.sh` - `EXP_*` markers
+- `install_flutter_complete.sh` - `FLUTTER_VERSION` via `versions_common.sh`
 - `scripts/install/install_termux_flutter.sh` - `FLUTTER_VERSION`
-- `README.md` - version badge and text
-- `package.yaml` - `Version: $tag`
+- `README.md` - version table and deb name
+- `package.yaml` - `Version: $package_version` plus the manifest template vars
 
 ### 2. Build Artifact
 
@@ -285,7 +290,7 @@ release/flutter_0~main.20260926.8db5526-1_aarch64.deb
 
 ### 3. Upload to GitHub Releases
 
-1. Create a new Release: `3.47.5`
+1. Create a new Release: `main`
 2. Upload the deb file: `flutter_0~main.20260926.8db5526-1_aarch64.deb`
 3. Fill in the Release Notes
 
@@ -306,7 +311,8 @@ When Flutter releases a new version:
 
 Edit `build.toml`:
 ```toml
-tag = "3.36.0"  # new version number
+[flutter]
+tag = "main"  # stable uses '<MAJOR>.<MINOR>.<PATCH>'; this branch tracks main
 ```
 
 ### 2. Sync Source Code
@@ -361,6 +367,10 @@ flutter-for-termux/
 ---
 
 ## Update Log
+
+### Unreleased (tracking main)
+- Current pins: Flutter `main`, Dart `3.14.0-271.0.dev`, framework `8db5526` (`2026-09-26`), DevTools `2.61.0-dev.0`, NDK r29, API 26, compileSdk/targetSdk 36.
+- No hosted main-channel release exists yet; size/SHA stay `TBD` until the first main build publishes.
 
 ### 2026-06-01
 - Updated this document to the Flutter 3.47.5 / Dart 3.13.4 state

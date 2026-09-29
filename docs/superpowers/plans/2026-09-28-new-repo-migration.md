@@ -1,5 +1,13 @@
 # New Repo Migration Implementation Plan
 
+> **Status (2026-09-29): superseded, kept as history.** The repo already
+> lives at `GeneralKaos666/prerelease-flutter-for-termux` on `main`
+> (`git remote -v` confirms `origin` points there). The `OLD=GeneralKaos666/flutter-for-termux`
+> strings below never matched this tree outside this plan file, and
+> `verify_release_asset.py` already defaults to the `prerelease-` repo.
+> No push happened under this plan; keep the steps as the migration
+> record only.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Push current `flutter-main-for-termux` branch as `main` of a new empty repo with all hardcoded `GeneralKaos666/flutter-for-termux` URLs migrated.

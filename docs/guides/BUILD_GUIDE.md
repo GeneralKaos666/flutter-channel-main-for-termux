@@ -51,16 +51,18 @@ The full engine build runs on the free GitHub-hosted `ubuntu-latest` runner
 (`build.yml`); PRs run lightweight checks first:
 
 ```bash
-python -m py_compile build.py package.py sysroot.py utils.py scripts/ci/check_repo.py scripts/ci/check_version_drift.py scripts/ci/verify_release_asset.py
-bash -n scripts/install/post_install.sh scripts/test/gh_e2e_test.sh scripts/device/termux_smoke.sh
+python -m py_compile build.py package.py sysroot.py utils.py scripts/ci/check_repo.py scripts/ci/check_version_drift.py scripts/ci/verify_release_asset.py scripts/ci/generate_versions.py
+bash -n install_flutter_complete.sh scripts/install/*.sh scripts/test/gh_e2e_test.sh scripts/device/termux_smoke.sh
+python scripts/ci/generate_versions.py --check
 python scripts/ci/check_repo.py
+python scripts/ci/check_version_drift.py
 git diff --check
 ```
 
 GitHub Actions is currently split into these tracks:
 
 - `.github/workflows/ci.yml`: GitHub-hosted sanity checks for PRs/pushes.
-- `.github/workflows/build.yml`: GitHub-hosted full `.deb` build, auto-triggered on CI success on `main` (or manual), publishes a release.
+- `.github/workflows/build.yml`: GitHub-hosted full `.deb` build on manual dispatch only, publishes a prerelease.
 - `.github/workflows/build-deb.yml`: self-hosted fallback full `.deb` build with evidence/artifact collection.
 - `.github/workflows/device-smoke.yml`: manual self-hosted Windows + ADB tablet smoke test.
 - `.github/workflows/release-check.yml`: Release asset metadata / SHA256 checks.
@@ -293,7 +295,7 @@ export PATH="$HOME/depot_tools:$PATH"
 ### Insufficient disk space
 The Flutter Engine source is about 30GB and the build output about 20GB, so you need at least 60GB of space.
 
-## Termux Setup Before Use (3.47.5)
+## Termux Setup Before Use (main)
 
 After installing the deb, run the following in Termux:
 
@@ -597,15 +599,15 @@ flutter build linux --debug     # ✅ verified (requires Termux:X11)
 flutter run                     # ✅ verified (Hot Reload supported)
 ```
 
-## Target Version Status (3.47.5)
+## Target Version Status (main)
 
-### Feature Test Results (updated 2026-08-15)
+### Feature Test Results (build.toml pins 2026-09-26)
 
 | Feature | Status | Description |
 |------|------|------|
-| `flutter --version` | ✅ OK | Flutter 3.47.5 / Tools Dart 3.13.4 |
-| `dart --version` | ✅ OK | Termux JIT Dart 3.13.4 (`android_arm64`) |
-| `dartvm --version` | ✅ OK | post-install `dartvm` resolves to Dart 3.13.4 (`android_arm64`) |
+| `flutter --version` | ✅ OK | Flutter main / Tools Dart 3.14.0-271.0.dev |
+| `dart --version` | ✅ OK | Termux JIT Dart 3.14.0-271.0.dev (`android_arm64`) |
+| `dartvm --version` | ✅ OK | post-install `dartvm` resolves to Dart 3.14.0-271.0.dev (`android_arm64`) |
 | `flutter doctor -v` | ✅ OK | unknown channel / no device are expected warnings |
 | `flutter create` | ✅ OK | Can create Android + Linux projects |
 | `flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons` | ✅ OK | Requires running post_install.sh; only supports android-arm64 |

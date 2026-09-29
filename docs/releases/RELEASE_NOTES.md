@@ -37,9 +37,9 @@ Device smoke on Samsung SM-X716B / Android 16 / ARM64 Termux:
 
 | Command | Result |
 |---------|--------|
-| `flutter --version` | ✅ Flutter 3.47.5 |
-| `dart --version` | ✅ Dart 3.13.4 on `android_arm64` |
-| `dartvm --version` | ✅ Dart 3.13.4 on `linux_arm64` |
+| `flutter --version` | ✅ Flutter main (framework `8db5526`, `2026-09-26`) |
+| `dart --version` | ✅ Dart 3.14.0-271.0.dev on `android_arm64` |
+| `dartvm --version` | ✅ Dart 3.14.0-271.0.dev on `linux_arm64` |
 | `flutter doctor -v` | ✅ completes; unknown channel / no connected device are expected warnings |
 | `flutter create --platforms=android,linux` | ✅ |
 | `flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons` | ✅ ARM64 APK produced |
@@ -48,9 +48,9 @@ Device smoke on Samsung SM-X716B / Android 16 / ARM64 Termux:
 
 ## Highlights
 
-### Flutter 3.47.5 update
+### Flutter main update
 
-- Updated package metadata, NDK configurations, and patches to target Flutter 3.47.5 (Dart 3.13.4).
+- Updated package metadata, NDK configurations, and patches to track Flutter main (Dart 3.14.0-271.0.dev, framework `8db5526` dated `2026-09-26`).
 - Keeps Flutter CLI on Termux JIT Dart while preserving engine VM tools for snapshots.
 
 ### Installer & Environment Hardening
@@ -66,7 +66,7 @@ Device smoke on Samsung SM-X716B / Android 16 / ARM64 Termux:
 ### Technical Details
 
 - Build output directories: `linux_debug_arm64/`, `linux_release_arm64/`, `linux_profile_arm64/`, `android_release_arm64/`, `android_profile_arm64/`
-- Deb package size is ~588MB.
+- Deb package size is TBD until the first main build publishes.
 
 ## Required per-project Android settings
 

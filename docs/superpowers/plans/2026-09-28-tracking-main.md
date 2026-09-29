@@ -1,5 +1,13 @@
 # Tracking-main Branch Implementation Plan
 
+> **Status (2026-09-29): implemented.** This branch tracks Flutter `main`:
+> `build.toml [flutter] tag='main'`, Dart `3.14.0-271.0.dev`, framework
+> `8db5526` (`2026-09-26`), DevTools `2.61.0-dev.0`. The deb is
+> snapshot-stamped (`flutter_0~main.20260926.8db5526-1_aarch64.deb`, never
+> `flutter_main-1_aarch64.deb`). Stable-only automation notes below that
+> name `autorelease.yml` map to `main-refresh.yml` in this tree. The
+> checkbox steps stay as the repeatable rebase record.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Create a long-lived `tracking-main` branch that builds the Termux Flutter `.deb` from Flutter `main` instead of stable.
@@ -57,7 +65,7 @@ Expected: demonstrates `flutter_tag()` returns a stable tag (e.g. `3.47.5`) inst
 
 - [ ] **Step 3: Implement minimal `build.toml` + skip-logic changes on `tracking-main`**
 
-In `build.toml` set `[flutter] tag = 'main'` and set `dart_version`, `framework_revision`, `framework_commit_date`, `devtools_version` to the real values from the fresh main checkout (dart `tools/VERSION`, framework `git rev-parse HEAD` + commit date, DevTools pubspec at the DEPS-pinned rev); keep `[package] pkg_rel = '1'` so `Build.output('arm64')` is `flutter_main-1_aarch64.deb` — already distinct from stable assets via the tag, no suffix scheme needed.
+In `build.toml` set `[flutter] tag = 'main'` and set `dart_version`, `framework_revision`, `framework_commit_date`, `devtools_version` to the real values from the fresh main checkout (dart `tools/VERSION`, framework `git rev-parse HEAD` + commit date, DevTools pubspec at the DEPS-pinned rev); keep `[package] pkg_rel = '1'` so `Build.output('arm64')` is `flutter_0~main.20260926.8db5526-1_aarch64.deb` — already distinct from stable assets via the snapshot-stamped tag, no extra suffix scheme needed.
 In `build.py:124-147` and `utils.py:35-42`, handle non-semver `tag`: when `self.tag == 'main'` (or `tag` is not `\d+\.\d+\.\d+`), resolve the checkout identity via branch/commit (`git rev-parse --abbrev-ref HEAD` / `git rev-parse HEAD`) instead of `git describe --tag --abbrev=0` for the skip decision.
 
 - [ ] **Step 4: Run contract tests**
@@ -92,7 +100,7 @@ Expected: FAIL (semver/deb-name/installer-marker mismatches against `main`).
 
 - [ ] **Step 2: Implement channel-aware checks**
 
-Extend the deb-name handling in `check_version_drift.py` for the `main` channel: `DEB_NAME_PATTERN` accepts `flutter_main(-suffix)?_aarch64.deb`, and the AGENTS.md / guide deb checks compare such names against `asset_name`. Add `export `-prefix support to the `replace_line_value` / `replace_line_int_value` autofix helpers (needed for `versions_common.sh`). Keep every stable-branch check byte-identical; no `check_repo.py` change needed (`check_installer_contract` already resolves through `{tag}`). Gate strictly on the `main` channel values, no generic "any string passes" fallback.
+Extend the deb-name handling in `check_version_drift.py` for the `main` channel: `DEB_NAME_PATTERN` accepts `flutter_0~main.YYYYMMDD.hash-REL_aarch64.deb` (snapshot-stamped via `utils.deb_version()`), and the AGENTS.md / guide deb checks compare such names against `asset_name`. Add `export `-prefix support to the `replace_line_value` / `replace_line_int_value` autofix helpers (needed for `versions_common.sh`). Keep every stable-branch check byte-identical; no `check_repo.py` change needed (`check_installer_contract` already resolves through `{tag}`). Gate strictly on the `main` channel values, no generic "any string passes" fallback.
 
 - [ ] **Step 3: Sync branch files to the new expected values**
 

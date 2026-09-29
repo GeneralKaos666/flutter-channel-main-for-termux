@@ -78,10 +78,12 @@ Therefore:
 `ci.yml` runs on every PR and push to `main`:
 
 ```text
-python -m py_compile build.py package.py sysroot.py utils.py scripts/ci/check_repo.py scripts/ci/check_version_drift.py scripts/ci/verify_release_asset.py
+python -m py_compile build.py package.py sysroot.py utils.py scripts/ci/check_repo.py scripts/ci/check_version_drift.py scripts/ci/verify_release_asset.py scripts/ci/generate_versions.py
 bash -n install_flutter_complete.sh scripts/install/*.sh scripts/test/gh_e2e_test.sh scripts/device/termux_smoke.sh
 PowerShell parser check for scripts/device/run_termux_smoke.ps1
+python scripts/ci/generate_versions.py --check
 python scripts/ci/check_repo.py
+python scripts/ci/check_version_drift.py
 git diff --check
 ```
 
@@ -91,14 +93,14 @@ git diff --check
 - self-hosted workflows are not triggered by `pull_request`
 - `package.yaml` still packages `dart`, `dartvm`, `dartaotruntime`, and `post_install`
 - `post_install.sh` still contains the Flutter 3.44 `PLATFORM_ABI_LIST` and Android-host patches
-- installer defaults remain on Flutter 3.47.5 and NDK r29 for Termux installs
+- installer defaults remain on Flutter main and NDK r29 for Termux installs
 - release/download docs do not regress to stale 3.41.5 commands
 
 ## Full deb build
 
 Primary workflow: **Build** (`.github/workflows/build.yml`).
 
-Runs on `ubuntu-latest` when `CI` succeeds on `main` (or on manual dispatch),
+Runs on `ubuntu-latest` on manual dispatch only (`workflow_dispatch`),
 reusing the NDK that ships on GitHub-hosted runners. It:
 
 1. Installs host deps and bootstraps `depot_tools` (inline clone).
@@ -132,9 +134,9 @@ back to **Build deb (self-hosted)** (`.github/workflows/build-deb.yml`):
 That self-hosted workflow bootstraps `depot_tools` if `gclient` is missing,
 then runs the same patched pipeline (see above) before uploading:
 
-- `flutter_3.47.5_aarch64.deb`
-- `flutter_3.47.5_aarch64.deb.sha256`
-- `flutter_3.47.5_aarch64.deb.size.txt`
+- `flutter_0~main.20260926.8db5526-1_aarch64.deb`
+- `flutter_0~main.20260926.8db5526-1_aarch64.deb.sha256`
+- `flutter_0~main.20260926.8db5526-1_aarch64.deb.size.txt`
 
 ## Release policy
 
@@ -158,11 +160,12 @@ self-hosted **Build deb (self-hosted)** workflow instead.
 
 Manual workflow: **Device smoke (self-hosted)**
 
-Default input tests the published 3.47.5 release asset:
+No hosted main-channel release exists yet. After the first main build
+publishes, the default input tests that release asset:
 
 ```text
-deb_url: https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/3.47.5/flutter_3.47.5_aarch64.deb
-expected_sha256: 6994580359002c6e0f6eb074d17a8ab3f9578e480e2aad83aa443474da3c9800
+deb_url: https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/main/flutter_0~main.20260926.8db5526-1_aarch64.deb
+expected_sha256: TBD (refresh after the first main build; installers fail closed until then)
 ```
 
 Required self-hosted environment:
@@ -228,7 +231,9 @@ This workflow is safe to run on GitHub-hosted runners because it only reads publ
   `workflow_dispatch` only.
 - Device smoke does not run untrusted PR code automatically.
 - Release publishing requires `contents: write`: the GitHub-hosted `Build`
-  workflow publishes automatically after `CI` succeeds on `main`.
+  workflow publishes on manual dispatch only, behind a release-asset
+  immutability guard (`should_publish` is false when the deb already
+  exists on the tag, so reruns never overwrite it).
 
 ## Branch Protection and Repository Governance
 
@@ -244,8 +249,9 @@ The repository governance rules for the `main` branch are codified in `.github/r
 Fast local checks:
 
 ```bash
-python -m py_compile build.py package.py sysroot.py utils.py scripts/ci/check_repo.py scripts/ci/check_version_drift.py scripts/ci/verify_release_asset.py
+python -m py_compile build.py package.py sysroot.py utils.py scripts/ci/check_repo.py scripts/ci/check_version_drift.py scripts/ci/verify_release_asset.py scripts/ci/generate_versions.py
 bash -n install_flutter_complete.sh scripts/install/*.sh scripts/test/gh_e2e_test.sh scripts/device/termux_smoke.sh
+python scripts/ci/generate_versions.py --check
 python scripts/ci/check_repo.py
 python scripts/ci/check_version_drift.py
 git diff --check
@@ -262,5 +268,5 @@ Manual Windows-to-tablet smoke:
 ```powershell
 scripts/device/run_termux_smoke.ps1 `
   -AdbPath "C:\Users\aa223\AppData\Local\Android\Sdk\platform-tools\adb.exe" `
-  -DebUrl "https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/3.47.5/flutter_3.47.5_aarch64.deb"
+  -DebUrl "https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/main/flutter_0~main.20260926.8db5526-1_aarch64.deb"
 ```
