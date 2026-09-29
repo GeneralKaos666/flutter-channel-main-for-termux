@@ -83,8 +83,8 @@ fi
 
 EXP_VER="main"
 EXP_CHANNEL="main"
-EXP_REV="8db55268667c738b90677d49857ff42938e9c9fa"
-EXP_DART="3.14.0-271.0.dev"
+EXP_REV="fab991537bf1ffb063579a0dd8a47cd4f2874618"
+EXP_DART="3.14.0 (build 3.14.0-271.0.dev)"
 if [ -f "$MANIFEST_PATH" ]; then
     m_v="$(grep -o '"flutter_version": *"[^"]*"' "$MANIFEST_PATH" 2>/dev/null | cut -d'"' -f4 || echo "")"
     m_r="$(grep -o '"framework_revision": *"[^"]*"' "$MANIFEST_PATH" 2>/dev/null | cut -d'"' -f4 || echo "")"

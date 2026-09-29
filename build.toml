@@ -4,12 +4,12 @@ tag = 'main'
 # revision (next pre-release past the last stable per flutter_tools
 # version.dart, e.g. past 3.47.5 -> 3.47.6-0.0.pre). Translated to Debian
 # tilde form for the deb version so main snapshots sort above last stable.
-framework_version = '3.47.6-0.0.pre'
+framework_version = '3.49.0-0.1.pre'
 repo = 'https://github.com/flutter/flutter'
 path = './flutter'
-dart_version = '3.14.0-271.0.dev'
-framework_revision = '8db55268667c738b90677d49857ff42938e9c9fa'
-framework_commit_date = '2026-09-26 15:45:14 -0700'
+dart_version = '3.14.0 (build 3.14.0-271.0.dev)'
+framework_revision = 'fab991537bf1ffb063579a0dd8a47cd4f2874618'
+framework_commit_date = '2026-09-29 00:17:30 +0000'
 devtools_version = '2.61.0-dev.0'
 
 [ndk]

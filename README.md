@@ -13,7 +13,7 @@ installs into a Termux `$PREFIX` and enables `flutter run`,
 | Flutter   | main channel |
 | Dart      | 3.14.0-271.0.dev |
 | Architecture | aarch64 (ARM64) only |
-| Package   | `flutter_3.47.6~0.0.pre+main.20260926.8db5526-1_aarch64.deb` |
+| Package   | `flutter_3.49.0~0.1.pre+main.20260929.fab9915-1_aarch64.deb` |
 
 Release assets include:
 - `flutter_<tag>-<pkg_rel>_aarch64.deb`
@@ -25,7 +25,7 @@ Download (after the first main build publishes):
 
 ```bash
 RELEASE_TAG=main
-DEB="flutter_3.47.6~0.0.pre+main.20260926.8db5526-1_aarch64.deb"
+DEB="flutter_3.49.0~0.1.pre+main.20260929.fab9915-1_aarch64.deb"
 BASE_URL="https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/${RELEASE_TAG}/"
 
 curl -fSL -o "$DEB" "${BASE_URL}${DEB}"
@@ -65,7 +65,7 @@ You get the release package plus the on-device Android SDK/toolchain
 
 ```bash
 RELEASE_TAG=main
-DEB="flutter_3.47.6~0.0.pre+main.20260926.8db5526-1_aarch64.deb"
+DEB="flutter_3.49.0~0.1.pre+main.20260929.fab9915-1_aarch64.deb"
 BASE_URL="https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/${RELEASE_TAG}/"
 
 curl -fSL -o "$DEB" "${BASE_URL}${DEB}"
