@@ -3,7 +3,7 @@
 Run the Flutter SDK on [Termux](https://termux.dev) (Android / Bionic ARM64).
 
 This project cross-compiles the upstream Flutter SDK into a `.deb` package that
-installs directly into a Termux `$PREFIX` and enables `flutter run`,
+installs into a Termux `$PREFIX` and enables `flutter run`,
 `flutter build apk`, and `flutter build linux` on-device.
 
 ## Version
@@ -42,7 +42,7 @@ the first main build publishes. Installers fail closed on
 
 Requirements:
 
-- AArch64 (ARM64) device running Termux. Only ARM64 is supported.
+- An AArch64 device running Termux. You need ARM64 hardware.
 - Run `pkg up` first, and install `x11-repo`:
 
 ```bash
@@ -58,7 +58,7 @@ curl -sL https://raw.githubusercontent.com/GeneralKaos666/prerelease-flutter-for
 bash install_flutter_complete.sh
 ```
 
-This installs the release package plus the on-device Android SDK/toolchain
+You get the release package plus the on-device Android SDK/toolchain
 (see [Install guide](docs/guides/INSTALL_GUIDE.md)).
 
 ### Manual install
@@ -80,7 +80,7 @@ apt install "./${DEB}"
 bash $PREFIX/share/flutter/post_install.sh
 ```
 
-`flutter` is installed to `$PREFIX/opt/flutter`. Verify with:
+You find `flutter` under `$PREFIX/opt/flutter`. Verify with:
 
 ```bash
 flutter doctor -v
@@ -105,13 +105,13 @@ flutter build apk --debug --no-tree-shake-icons
 
 ### Per-project configuration
 
-Script, run once per project:
+Run this script once per project:
 
 ```bash
 bash $PREFIX/share/flutter/flutter_project_config.sh
 ```
 
-or apply manually:
+or do it by hand:
 
 `android/gradle.properties`:
 
@@ -133,12 +133,12 @@ android {
 }
 ```
 
-> Why compileSdk 36? Termux ships aapt2 16.0.0.4, which can load the
-> android-35/36 `android.jar`, so projects now default to `compileSdk = 36` /
-> `targetSdk = 36`. `post_install.sh` pins these via
-> `flutter_project_config.sh` and falls back 36 → 35 → 34 only if the installed
-> aapt2 cannot load the newest platform. The engine is built against Android
-> API 26 with weak imports, so this only affects the APK packaging tools.
+> You use compileSdk 36 because Termux ships aapt2 16.0.0.4, which loads the
+> android-35/36 `android.jar`. `post_install.sh` pins `compileSdk = 36` /
+> `targetSdk = 36` through `flutter_project_config.sh` and falls back
+> 36 → 35 → 34 when your installed aapt2 cannot load the newest platform.
+> You build the engine against Android API 26 with weak imports, so compileSdk
+> shapes APK packaging tools, nothing else.
 > See [AAPT2 analysis](docs/guides/AAPT2_RELEASE_BUILD_BUG_ANALYSIS.md).
 
 ## Hot reload
@@ -175,8 +175,8 @@ Then open `http://localhost:8080` in your browser.
 
 ## Build the package from source
 
-Full pipeline on a Linux x86-64 host (WSL2 or a self-hosted runner), NDK r29,
-`dpkg`, and `ar`:
+You run the full pipeline on a Linux x86-64 host (WSL2 or self-hosted runner)
+with NDK r29, `dpkg`, and `ar`:
 
 ```bash
 python3 -m pip install -r requirements.txt
@@ -190,49 +190,47 @@ python3 build.py build --arch=arm64 --mode=release
 python3 build.py debuild --arch=arm64
 ```
 
-A full run takes roughly 2-4 hours on 24 threads. Patches are applied
-automatically during `sync` via the `.gclient` `custom_hooks`, so no explicit
-`patch_*` step is needed (running one right after `sync` fails with "already
+Plan 2-4 hours for a full run on 24 threads. The `.gclient` `custom_hooks`
+apply patches during `sync`, so you skip `patch_*` (running one right after `sync` fails with "already
 exists"). See [Build guide](docs/guides/BUILD_GUIDE.md) for details and
 troubleshooting.
 
 ## CI/CD
 
-Releases are built and published as prereleases by the daily gated `Build`
-workflow (`build.yml`) on `ubuntu-latest` — it builds only when there is
-anything new, with the deb name derived at build time — and can also be
-triggered by manual dispatch; a self-hosted evidence-tracked fallback
-(`build-deb.yml`) and an ADB device smoke gate (`device-smoke.yml`)
-support manual runs.
+The daily gated `Build` workflow (`build.yml`) builds and publishes prereleases
+on `ubuntu-latest`. It runs when something changes and derives the deb name at
+build time. You trigger it by manual dispatch too. A self-hosted
+evidence-tracked fallback (`build-deb.yml`) plus an ADB device smoke gate
+(`device-smoke.yml`) cover manual runs.
 See [CI/CD and device lab](docs/CI_CD.md).
 
 ## Documentation
 
-- [Install guide](docs/guides/INSTALL_GUIDE.md) — on-device setup, prerequisites, troubleshooting.
-- [Build guide](docs/guides/BUILD_GUIDE.md) — end-to-end source build and packaging.
-- [Upgrade guide](docs/guides/UPGRADE_GUIDE.md) — moving to a new Flutter release.
-- [Build process](docs/guides/BUILD_PROCESS.md) — historical build notes.
-- [Changelog](docs/releases/CHANGELOG.md) — version history and notable fixes.
-- [Release notes](docs/releases/RELEASE_NOTES.md) — GitHub release body.
+- [Install guide](docs/guides/INSTALL_GUIDE.md): on-device setup, prerequisites, troubleshooting.
+- [Build guide](docs/guides/BUILD_GUIDE.md): end-to-end source build and packaging.
+- [Upgrade guide](docs/guides/UPGRADE_GUIDE.md): moving to a new Flutter release.
+- [Build process](docs/guides/BUILD_PROCESS.md): historical build notes.
+- [Changelog](docs/releases/CHANGELOG.md): version history and notable fixes.
+- [Release notes](docs/releases/RELEASE_NOTES.md): GitHub release body.
 
 ## Acknowledgements
 
-This project continues work started elsewhere:
+You build on earlier work:
 
-- [mumumusuc/Flutter-Termux](https://github.com/mumumusuc/Flutter-Termux) —
-  the original Termux port: the `is_termux` GN toolchain, Bionic linker
-  handling, and the engine/Dart/Skia patch approach applied via `gclient`
+- [mumumusuc/Flutter-Termux](https://github.com/mumumusuc/Flutter-Termux):
+  the original Termux port. You get the `is_termux` GN toolchain, Bionic linker
+  handling, and the engine/Dart/Skia patch approach through `gclient`
   hooks.
-- Contributors along the way — Sergey Yamshchikov, Not Sarv, Susan Dahal,
-  and Ron Sloan — for version bumps, docs, and build fixes.
-- Upstream [Flutter](https://github.com/flutter/flutter), Dart, Skia, and
-  Termux, without which none of this builds or runs.
-- This repo continues the `GeneralKaos666/flutter-for-termux` line as
-  `prerelease-flutter-for-termux` tracking Flutter `main`.
+- Sergey Yamshchikov, Not Sarv, Susan Dahal, and Ron Sloan contributed code
+  and docs.
+- You depend on upstream [Flutter](https://github.com/flutter/flutter), Dart,
+  Skia, and Termux to build and run.
+- You track Flutter `main` here as `prerelease-flutter-for-termux`, continuing
+  the `GeneralKaos666/flutter-for-termux` line.
 
 ## Limitations
 
 - ARM64 only: `arm` and `x64` gen_snapshot builds fail (32-bit BoringSSL shift
-  overflow / sysroot mismatch), so only the `aarch64` package is produced.
-- The bundled build targets `release` mode by default; debug/profile require
-  rebuilding those steps with `--mode=debug|profile`.
+  overflow / sysroot mismatch), so you get the `aarch64` package.
+- The bundle ships `release` mode. Rebuild with `--mode=debug|profile` for
+  debug/profile.
