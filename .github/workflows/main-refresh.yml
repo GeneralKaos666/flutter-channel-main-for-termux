@@ -72,6 +72,9 @@ jobs:
             exit 1
           fi
           git config --global --add safe.directory /tmp/flutter-probe
+          # Warm up once (downloads SDK/builds tool; progress goes to stdout
+          # and would corrupt --machine JSON on first run), then capture.
+          /tmp/flutter-probe/bin/flutter --version > /dev/null
           /tmp/flutter-probe/bin/flutter --version --machine > /tmp/flutter-version.json
           python3 - /tmp/flutter-version.json >> "$GITHUB_OUTPUT" <<'PY'
           import json
