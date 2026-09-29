@@ -44,7 +44,7 @@ jobs:
       - name: Compare with pinned revision
         id: check
         run: |
-          python3 - "${{ steps.probe.outputs.HEAD }}" <<'PY' >> "$GITHUB_OUTPUT"
+          python3 - "${{ steps.probe.outputs.HEAD }}" >> "$GITHUB_OUTPUT" <<'PY'
           import sys
           import tomllib
           head = sys.argv[1]
@@ -52,10 +52,10 @@ jobs:
               current = tomllib.load(f)["flutter"].get("framework_revision", "")
           if head == current:
               print("should_refresh=false")
-              print(f"already at upstream main ({head[:7]}), nothing to do.")
+              print(f"already at upstream main ({head[:7]}), nothing to do.", file=sys.stderr)
           else:
               print("should_refresh=true")
-              print(f"main moved: {current[:7]} -> {head[:7]}")
+              print(f"main moved: {current[:7]} -> {head[:7]}", file=sys.stderr)
           PY
 
       - name: Probe release metadata from a shallow main checkout
