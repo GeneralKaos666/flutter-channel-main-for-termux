@@ -526,5 +526,19 @@ def test_main_release_tag_never_collides_with_stable():
     assert re.fullmatch(r"v(\d+\.\d+\.\d+~.+|main)\.\d{8}\.[0-9a-f]{7}", b.release_tag)
 
 
+def test_dart_canonical_vs_prose_forms():
+    import re
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path("scripts/ci").resolve()))
+    from check_version_drift import load_build_config
+
+    cfg = load_build_config()
+    assert re.fullmatch(r"\d+\.\d+\.\d+ \(build .+\)", cfg["dart_version"])
+    semver = cfg["dart_version"].split(" ")[0]
+    assert re.fullmatch(r"\d+\.\d+\.\d+.*", semver)
+
+
 if __name__ == "__main__":
     unittest.main()

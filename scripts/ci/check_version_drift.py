@@ -270,11 +270,17 @@ def check_markdown_docs(cfg: dict[str, str], root_path: Path | None = None) -> N
                 fail(f"{rel_path}: download URL tag mismatch: found '{found_tag}', expected '{release_tag}'")
 
         # Check current Dart version reference in README (release notes legitimately
-        # reference historical dart versions, so they are not scanned here)
+        # reference historical dart versions, so they are not scanned here).
+        # Prose docs carry the bare semver (e.g. `3.14.0`), while build.toml
+        # pins the Flutter-canonical form (`3.14.0 (build ...)`): compare the
+        # extracted leading semver here. Script checks
+        # (check_post_install_script/check_doctor_script) keep exact-match
+        # against the full canonical string.
         if rel_path == "README.md":
+            dart_semver = dart_version.split(" ")[0]
             for dart_match in re.finditer(rf"Dart\s+({SEMVER_PATTERN})", text):
-                if dart_match.group(1) != dart_version:
-                    fail(f"{rel_path}: Dart version reference mismatch: found '{dart_match.group(1)}', expected '{dart_version}'")
+                if dart_match.group(1) != dart_semver:
+                    fail(f"{rel_path}: Dart version reference mismatch: found '{dart_match.group(1)}', expected '{dart_semver}'")
 
         # Check package size if present
         if cfg.get("size") and "Size |" in text:
