@@ -154,6 +154,50 @@ jobs:
           set -euo pipefail
           pip install -q -r requirements.txt
           python3 scripts/ci/generate_versions.py
+          python3 - <<'PY'
+          import re
+          import tomllib
+          from pathlib import Path
+          with open("build.toml", "rb") as f:
+              flutter = tomllib.load(f)["flutter"]
+          tag = str(flutter.get("tag", ""))
+          channel = "main" if tag == "main" else "stable"
+          values = {
+              "CANONICAL_FLUTTER_VER": tag,
+              "CANONICAL_FRAMEWORK_REV": str(flutter.get("framework_revision", "")),
+              "CANONICAL_FRAMEWORK_DATE": str(flutter.get("framework_commit_date", "")),
+              "CANONICAL_DART_VER": str(flutter.get("dart_version", "")),
+              "CANONICAL_DEVTOOLS_VER": str(flutter.get("devtools_version", "")),
+              "CANONICAL_CHANNEL": channel,
+          }
+          p = Path("scripts/install/post_install.sh")
+          text = p.read_text(encoding="utf-8")
+          for key, value in values.items():
+              text, n = re.subn(
+                  rf'(?m)^({re.escape(key)}=")[^"]*(")',
+                  lambda m, v=value: f"{m.group(1)}{v}{m.group(2)}",
+                  text,
+              )
+              if n != 1:
+                  raise SystemExit(f"expected 1 {key} line in post_install.sh, rewrote {n}")
+          p.write_text(text, encoding="utf-8")
+          d = Path("scripts/install/flutter_termux_doctor.sh")
+          text = d.read_text(encoding="utf-8")
+          for key, value in (
+              ("EXP_VER", tag),
+              ("EXP_CHANNEL", channel),
+              ("EXP_REV", values["CANONICAL_FRAMEWORK_REV"]),
+              ("EXP_DART", values["CANONICAL_DART_VER"]),
+          ):
+              text, n = re.subn(
+                  rf'(?m)^({re.escape(key)}=")[^"]*(")',
+                  lambda m, v=value: f"{m.group(1)}{v}{m.group(2)}",
+                  text,
+              )
+              if n != 1:
+                  raise SystemExit(f"expected 1 {key} line in flutter_termux_doctor.sh, rewrote {n}")
+          d.write_text(text, encoding="utf-8")
+          PY
           python3 scripts/ci/check_version_drift.py --fix
           python3 scripts/ci/check_repo.py
           git diff --stat
