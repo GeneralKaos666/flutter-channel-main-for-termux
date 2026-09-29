@@ -875,18 +875,26 @@ if is_synthetic_repo "$FLUTTER_ROOT"; then
 	fi
 fi
 
-# Prints the full semantic version (e.g. 3.14.0-271.0.dev or 3.44.0)
-# reported by a dart binary. Falls back to the numeric X.Y.Z parse for
-# atypical version banners.
+# Prints the Flutter-canonical Dart SDK version (mirrors Cache.dartSdkVersion
+# in flutter_tools: raw 'X.Y.Z-suffix' becomes 'X.Y.Z (build X.Y.Z-suffix)',
+# plain 'X.Y.Z' stays as-is). Parsed from '<binary> --version'
+# ('Dart SDK version: <ver> ...'). Falls back to the numeric X.Y.Z parse
+# for atypical version banners.
 dart_full_version() {
 	local raw
 	raw="$("$1" --version 2>&1 || true)"
-	local full
-	full="$(printf '%s\n' "$raw" | sed -n 's/.*Dart SDK version: \([^ ]*\).*/\1/p' | head -1 | tr -d '\r')"
-	if [ -n "$full" ]; then
-		printf '%s' "$full"
+	local ver
+	ver="$(printf '%s\n' "$raw" | sed -n 's/.*Dart SDK version: \([^ ]*\).*/\1/p' | head -1 | tr -d '\r')"
+	if [ -z "$ver" ]; then
+		ver="$(printf '%s\n' "$raw" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+	fi
+	if [[ "$ver" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(.+)$ ]]; then
+		local base="${BASH_REMATCH[1]}"
+		local rest="${BASH_REMATCH[2]}"
+		rest="${rest//.flutter-/ }"
+		printf '%s (build %s%s)' "$base" "$base" "$rest"
 	else
-		printf '%s\n' "$raw" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1
+		printf '%s' "$ver"
 	fi
 }
 
