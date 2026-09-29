@@ -71,7 +71,8 @@ jobs:
             echo "clone raced upstream ($CLONE_HEAD != ${{ steps.probe.outputs.HEAD }}); rerun later." >&2
             exit 1
           fi
-          flutter --version --machine > /tmp/flutter-version.json
+          git config --global --add safe.directory /tmp/flutter-probe
+          /tmp/flutter-probe/bin/flutter --version --machine > /tmp/flutter-version.json
           python3 - /tmp/flutter-version.json >> "$GITHUB_OUTPUT" <<'PY'
           import json
           import re
