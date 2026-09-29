@@ -17,8 +17,11 @@ def snapshot_stamp(commit_date: str, revision: str) -> str:
     version-sorts strictly above the previous one and dpkg/apt can never
     see a new build as a downgrade.
     """
-    day = re.split(r"[ T]", str(commit_date).strip(), 1)[0].replace("-", "")
-    return f"{day}.{str(revision).strip()[:7]}"
+    day = re.split(r"[ T]", str(commit_date).strip(), maxsplit=1)[0].replace("-", "")
+    short = str(revision).strip()[:7]
+    if not day or not short:
+        return ""
+    return f"{day}.{short}"
 
 
 def flutter_to_deb_upstream(framework_version: str) -> str:

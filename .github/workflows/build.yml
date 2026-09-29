@@ -81,9 +81,8 @@ jobs:
           sys.path.insert(0, "scripts/ci")
           import version_lib
 
-          day = commit_date.split(" ")[0].replace("-", "") if commit_date else ""
-          snapshot = version_lib.snapshot_stamp(commit_date, pinned) if day and pinned else ""
-          release_tag = version_lib.release_tag(fw_ver, commit_date, pinned) or tag
+          snapshot = version_lib.snapshot_stamp(commit_date or "", pinned or "")
+          release_tag = version_lib.release_tag(fw_ver, commit_date, pinned)
           package_version = version_lib.deb_version(tag, pkg_rel, snapshot, fw_ver)
           deb_name = version_lib.asset_name(tag, pkg_rel, snapshot, fw_ver)
           print(f"release_tag={release_tag}")
@@ -376,7 +375,7 @@ jobs:
           # never a bare semver, so per-deb tags cannot collide with stable
           # tags; the release_guard gate above + overwrite_files:false below
           # preserve asset immutability.
-          prerelease: false # Keep-stable per 2026-09-29 decision: safe because release_tag is date+hash suffixed, never bare semver.
+          prerelease: false
           make_latest: true
           files: |
             ${{ steps.artifact.outputs.deb }}

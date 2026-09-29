@@ -40,9 +40,6 @@ BUILD_CRITICAL_FILES = (
 )
 
 
-
-
-
 def normalize_member_path(p: str) -> str:
     """Normalize tar member / inventory path by stripping leading './' and trailing '/' without clobbering whitespace or leading dots."""
     s = p

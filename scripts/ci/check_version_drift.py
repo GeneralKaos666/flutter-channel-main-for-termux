@@ -114,6 +114,11 @@ def apply_version_autofix(cfg: dict[str, str], root_path: Path | None = None) ->
             text,
         )
         text = replace_default_var_value(text, "FLUTTER_VERSION", tag)[0]
+        text = re.sub(
+            r"(\$\{\s*FLUTTER_VERSION\s*:-\s*)(?!\$)([^}\s]*)(\s*\})",
+            rf"\g<1>{tag}\g<3>",
+            text,
+        )
         text = replace_default_var_int_value(text, "FLUTTER_PKG_REL", cfg.get("pkg_rel", ""))[0]
         text = replace_default_var_value(text, "RELEASE_TAG", release_tag)[0]
         # Non-semver defaults (e.g. ${RELEASE_TAG:-main}): rewrite the default
@@ -176,10 +181,7 @@ def load_build_config(root_path: Path | None = None) -> dict[str, str]:
         from version_lib import release_tag as lib_release_tag
 
     # Single-sourced from version_lib so each main refresh renames the asset.
-    if framework_commit_date and framework_revision:
-        snapshot = snapshot_stamp(framework_commit_date, framework_revision)
-    else:
-        snapshot = ""
+    snapshot = snapshot_stamp(framework_commit_date or "", framework_revision or "")
     package_version = deb_version(str(tag), pkg_rel, snapshot, framework_version)
     release_tag = lib_release_tag(framework_version, framework_commit_date, framework_revision)
     asset_name = f"flutter_{package_version}_aarch64.deb"
@@ -389,7 +391,7 @@ def check_installer_scripts(cfg: dict[str, str], root_path: Path | None = None) 
             found_ver = ver_match.group(1).lstrip("v")
             if found_ver != tag and not found_ver.startswith("${"):
                 fail(f"{rel_path}: FLUTTER_VERSION mismatch: found '{found_ver}', expected '{tag}'")
-        ver_default_match = re.search(rf'\$\{{\s*FLUTTER_VERSION\s*:-\s*({SEMVER_PATTERN})\s*}}', text)
+        ver_default_match = re.search(r'\$\{\s*FLUTTER_VERSION\s*:-\s*(?!\$)([^}\s]+)\s*\}', text)
         if ver_default_match:
             found_ver = ver_default_match.group(1)
             if found_ver != tag:
@@ -400,7 +402,7 @@ def check_installer_scripts(cfg: dict[str, str], root_path: Path | None = None) 
             found_tag = tag_match.group(1)
             if found_tag != release_tag and not found_tag.startswith("${"):
                 fail(f"{rel_path}: RELEASE_TAG mismatch: found '{found_tag}', expected '{release_tag}'")
-        tag_default_match = re.search(rf'\$\{{\s*RELEASE_TAG\s*:-\s*({SEMVER_PATTERN})\s*}}', text)
+        tag_default_match = re.search(r'\$\{\s*RELEASE_TAG\s*:-\s*(?!\$)([^}\s]+)\s*\}', text)
         if tag_default_match:
             found_tag = tag_default_match.group(1)
             if found_tag != release_tag:

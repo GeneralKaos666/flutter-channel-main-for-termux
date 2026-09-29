@@ -103,6 +103,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.12'
+
       - name: Verify patches at pinned revision (fail closed)
         run: |
           set -euo pipefail
