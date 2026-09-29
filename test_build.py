@@ -540,5 +540,32 @@ def test_dart_canonical_vs_prose_forms():
     assert re.fullmatch(r"\d+\.\d+\.\d+.*", semver)
 
 
+def test_verify_patches_helper_exists_and_parses():
+    import subprocess
+
+    r = subprocess.run(
+        ["python3", "scripts/ci/verify_patches.py", "--help"],
+        capture_output=True,
+        text=True,
+    )
+    assert r.returncode == 0 and "--rev" in r.stdout
+
+
+def test_patch_rebase_evidence_matches_pin():
+    import tomllib
+
+    evidence = Path("patches/last-rebase.txt")
+    assert evidence.is_file(), (
+        "missing patches/last-rebase.txt; run scripts/ci/verify_patches.py --rev <framework_revision>"
+    )
+    text = evidence.read_text(encoding="utf-8")
+    with open("build.toml", "rb") as f:
+        rev = tomllib.load(f)["flutter"]["framework_revision"]
+    assert f"rev={rev}" in text
+    assert "engine=OK" in text
+    assert "dart=parse-OK" in text
+    assert "skia=parse-OK" in text
+
+
 if __name__ == "__main__":
     unittest.main()
