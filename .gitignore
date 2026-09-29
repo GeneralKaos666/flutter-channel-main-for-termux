@@ -32,6 +32,7 @@ __pycache__/
 !README*.txt
 !requirements.txt
 !requirements-dev.txt
+!patches/last-rebase.txt
 
 # ----- IDE / editors -----
 .vscode/

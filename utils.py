@@ -6,6 +6,19 @@ from functools import wraps
 import git
 from loguru import logger
 
+from scripts.ci.version_lib import (
+    deb_version as _lib_deb_version,
+)
+from scripts.ci.version_lib import (
+    flutter_to_deb_upstream as _lib_fw_upstream,
+)
+from scripts.ci.version_lib import (
+    release_tag as _lib_release_tag,
+)
+from scripts.ci.version_lib import (
+    snapshot_stamp as _lib_snapshot_stamp,
+)
+
 __ARCH__ = dict(arm="arm", arm64="aarch64", x64="x86_64", x86="i686")
 __MODE__ = ("release", "debug", "profile")
 
@@ -31,8 +44,7 @@ def snapshot_stamp(commit_date: str, revision: str) -> str:
     version-sorts strictly above the previous one and dpkg/apt can never
     see a new build as a downgrade.
     """
-    day = re.split(r"[ T]", str(commit_date).strip(), 1)[0].replace("-", "")
-    return f"{day}.{str(revision).strip()[:7]}"
+    return _lib_snapshot_stamp(commit_date, revision)
 
 
 def flutter_to_deb_upstream(framework_version: str) -> str:
@@ -43,13 +55,7 @@ def flutter_to_deb_upstream(framework_version: str) -> str:
     '3.47.6') while still sorting above the previous stable ('3.47.5').
     Returns '' for missing/'0.0.0-unknown' so callers can fall back.
     """
-    fw = str(framework_version or "").strip()
-    if not fw or fw == "0.0.0-unknown":
-        return ""
-    if "-" in fw:
-        base, rest = fw.split("-", 1)
-        return f"{base}~{rest.replace('-', '.')}"
-    return fw
+    return _lib_fw_upstream(framework_version)
 
 
 def release_tag(framework_version: str, commit_date: str, revision: str = "") -> str:
@@ -61,22 +67,7 @@ def release_tag(framework_version: str, commit_date: str, revision: str = "") ->
     'v3.49.0~0.1.pre.20260929.fab9915'.
     Falls back to date-only or version-only when a pin is missing.
     """
-    fw = flutter_to_deb_upstream(framework_version)
-    day = re.split(r"[ T]", str(commit_date or "").strip(), maxsplit=1)[0].replace("-", "")
-    short = str(revision or "").strip()[:7]
-    if fw and day and short:
-        return f"v{fw}.{day}.{short}"
-    if fw and day:
-        return f"v{fw}.{day}"
-    if fw and short:
-        return f"v{fw}.{short}"
-    if fw:
-        return f"v{fw}"
-    if day and short:
-        return f"vmain.{day}.{short}"
-    if day:
-        return "vmain." + day
-    return ""
+    return _lib_release_tag(framework_version, commit_date, revision)
 
 
 def deb_version(tag: str, pkg_rel: str, snapshot: str = "", framework_version: str = "") -> str:
@@ -92,16 +83,7 @@ def deb_version(tag: str, pkg_rel: str, snapshot: str = "", framework_version: s
     the next final. Without a framework version it falls back to the
     legacy '0~main.20260926.8db5526-1' (lower than any stable).
     """
-    tag, rel, snap = str(tag), str(pkg_rel or "").strip(), str(snapshot or "").strip()
-    if tag[:1].isdigit():
-        base = tag
-    else:
-        fw = flutter_to_deb_upstream(framework_version)
-        if fw:
-            base = fw + (f"+main.{snap}" if snap else "")
-        else:
-            base = f"0~{tag}" + (f".{snap}" if snap else "")
-    return f"{base}-{rel}" if rel else base
+    return _lib_deb_version(tag, pkg_rel, snapshot, framework_version)
 
 
 def target_output(root: str, arch: str, mode: str, opted: bool = True):

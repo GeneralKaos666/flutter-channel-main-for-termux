@@ -111,18 +111,12 @@ jobs:
         if: steps.check.outputs.should_refresh == 'true'
         run: |
           set -euo pipefail
-          # On patch conflict stop here: no pin bump, no push, and therefore
-          # no downstream build/tag. Engine patch must apply cleanly to the
-          # probed framework checkout; dart/skia trees are absent here
-          # (fetched via .gclient custom_hooks), so parse-level check only
-          # (same contract as validate.yml).
-          cd /tmp/flutter-probe
-          git apply --check "${GITHUB_WORKSPACE}/patches/engine.patch"
-          git apply --stat "${GITHUB_WORKSPACE}/patches/dart.patch" > /tmp/dart.stat
-          git apply --stat "${GITHUB_WORKSPACE}/patches/skia.patch" > /tmp/skia.stat
-          grep -Eq ' (pkg|runtime|sdk)/' /tmp/dart.stat
-          grep -Eq ' include/' /tmp/skia.stat
-          echo "patches validate OK against ${{ steps.probe.outputs.HEAD }}"
+          # Pinned-REV rebase evidence: on patch conflict stop here (no pin
+          # bump, no push, and therefore no downstream build/tag). Reuses the
+          # /tmp/flutter-probe checkout (already verified at probed HEAD) and
+          # records patches/last-rebase.txt, committed with the pin bump below.
+          python3 scripts/ci/verify_patches.py --rev "${{ steps.probe.outputs.HEAD }}" --checkout /tmp/flutter-probe
+          cat patches/last-rebase.txt
 
       - name: Bump build.toml pins
         if: steps.check.outputs.should_refresh == 'true'

@@ -479,5 +479,93 @@ class SysrootLockTest(unittest.TestCase):
                     self.assertIn(field, pkg)
 
 
+def test_version_single_source_matches_build():
+    import os
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path("scripts/ci").resolve()))
+    import version_lib
+
+    import build
+
+    os.environ.setdefault("ANDROID_NDK", "/tmp/android-ndk")
+    b = build.Build()
+    assert b.release_tag == version_lib.release_tag(
+        b.framework_version, b.framework_commit_date, b.framework_revision
+    )
+    assert b.package_version == version_lib.deb_version(
+        b.tag, b.pkg_rel, b.snapshot, b.framework_version
+    )
+
+
+def test_drift_config_matches_build_output():
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path("scripts/ci").resolve()))
+    from check_version_drift import load_build_config
+
+    import build
+
+    os.environ.setdefault("ANDROID_NDK", "/tmp/android-ndk")
+    b = build.Build()
+    cfg = load_build_config()
+    assert cfg["release_tag"] == b.release_tag
+    assert cfg["asset_name"] == b.output("arm64").name
+
+
+def test_main_release_tag_never_collides_with_stable():
+    import re
+
+    import build
+
+    os.environ.setdefault("ANDROID_NDK", "/tmp/android-ndk")
+    b = build.Build()
+    assert not re.fullmatch(r"v?\d+\.\d+\.\d+", b.release_tag)
+    assert re.fullmatch(r"v(\d+\.\d+\.\d+~.+|main)\.\d{8}\.[0-9a-f]{7}", b.release_tag)
+
+
+def test_dart_canonical_vs_prose_forms():
+    import re
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path("scripts/ci").resolve()))
+    from check_version_drift import load_build_config
+
+    cfg = load_build_config()
+    assert re.fullmatch(r"\d+\.\d+\.\d+ \(build .+\)", cfg["dart_version"])
+    semver = cfg["dart_version"].split(" ")[0]
+    assert re.fullmatch(r"\d+\.\d+\.\d+.*", semver)
+
+
+def test_verify_patches_helper_exists_and_parses():
+    import subprocess
+
+    r = subprocess.run(
+        ["python3", "scripts/ci/verify_patches.py", "--help"],
+        capture_output=True,
+        text=True,
+    )
+    assert r.returncode == 0 and "--rev" in r.stdout
+
+
+def test_patch_rebase_evidence_matches_pin():
+    import tomllib
+
+    evidence = Path("patches/last-rebase.txt")
+    assert evidence.is_file(), (
+        "missing patches/last-rebase.txt; run scripts/ci/verify_patches.py --rev <framework_revision>"
+    )
+    text = evidence.read_text(encoding="utf-8")
+    with open("build.toml", "rb") as f:
+        rev = tomllib.load(f)["flutter"]["framework_revision"]
+    assert f"rev={rev}" in text
+    assert "engine=OK" in text
+    assert "dart=parse-OK" in text
+    assert "skia=parse-OK" in text
+
+
 if __name__ == "__main__":
     unittest.main()

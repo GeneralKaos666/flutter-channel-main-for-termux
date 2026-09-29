@@ -407,6 +407,7 @@ def check_script_headers() -> None:
         "sysroot.py",
         "scripts/ci/check_repo.py",
         "scripts/ci/check_version_drift.py",
+        "scripts/ci/verify_patches.py",
         "scripts/ci/verify_release_asset.py",
         "scripts/ci/generate_versions.py",
     ]

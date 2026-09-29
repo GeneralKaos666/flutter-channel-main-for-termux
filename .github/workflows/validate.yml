@@ -10,6 +10,7 @@ on:
       - 'utils.py'
       - 'stubs/**'
       - 'requirements.txt'
+      - 'scripts/ci/verify_patches.py'
   pull_request:
     paths:
       - 'patches/**'
@@ -19,6 +20,7 @@ on:
       - 'utils.py'
       - 'stubs/**'
       - 'requirements.txt'
+      - 'scripts/ci/verify_patches.py'
 
 permissions:
   contents: read
@@ -94,3 +96,24 @@ jobs:
           echo "=== New termux config files ==="
           ls flutter/engine/src/build/config/termux/
           ls flutter/engine/src/build/toolchain/termux/
+
+  test-patch-evidence:
+    name: Pinned-REV patch rebase evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Verify patches at pinned revision (fail closed)
+        run: |
+          set -euo pipefail
+          REV=$(python3 -c "
+          import tomllib
+          with open('build.toml', 'rb') as f:
+              print(tomllib.load(f)['flutter']['framework_revision'])
+          ")
+          python3 scripts/ci/verify_patches.py --rev "$REV"
+          cat patches/last-rebase.txt

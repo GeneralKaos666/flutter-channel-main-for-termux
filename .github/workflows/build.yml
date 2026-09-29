@@ -75,43 +75,16 @@ jobs:
           commit_date = str(flutter.get("framework_commit_date") or "")
           pkg_rel = str(cfg.get("package", {}).get("pkg_rel") or "").strip()
 
-          # Mirror utils.snapshot_stamp + utils.deb_version (incl.
-          # flutter_to_deb_upstream) so the gate deb name matches
-          # Build.output() at build time. Mirror utils.release_tag for the
-          # stable per-deb GitHub release tag (v<upstream>.<YYYYMMDD>.<shorthash>).
-          day = commit_date.split(" ")[0].replace("-", "") if commit_date else ""
-          snapshot = f"{day}.{pinned[:7]}" if day and pinned else ""
-          fw_up = ""
-          if fw_ver and fw_ver != "0.0.0-unknown":
-              if "-" in fw_ver:
-                  _b, _r = fw_ver.split("-", 1)
-                  fw_up = f"{_b}~{_r.replace('-', '.')}"
-              else:
-                  fw_up = fw_ver
-          short = pinned[:7] if pinned else ""
-          if fw_up and day and short:
-              release_tag = f"v{fw_up}.{day}.{short}"
-          elif fw_up and day:
-              release_tag = f"v{fw_up}.{day}"
-          elif fw_up and short:
-              release_tag = f"v{fw_up}.{short}"
-          elif fw_up:
-              release_tag = f"v{fw_up}"
-          elif day and short:
-              release_tag = f"vmain.{day}.{short}"
-          elif day:
-              release_tag = f"vmain.{day}"
-          else:
-              release_tag = tag
-          if tag[:1].isdigit():
-              base = tag
-          else:
-              if fw_up:
-                  base = fw_up + (f"+main.{snapshot}" if snapshot else "")
-              else:
-                  base = f"0~{tag}" + (f".{snapshot}" if snapshot else "")
-          package_version = f"{base}-{pkg_rel}" if pkg_rel else base
-          deb_name = f"flutter_{package_version}_aarch64.deb"
+          # Single-sourced from scripts/ci/version_lib so the gate deb name
+          # matches Build.output() at build time, including the stable
+          # per-deb GitHub release tag (v<upstream>.<YYYYMMDD>.<shorthash>).
+          sys.path.insert(0, "scripts/ci")
+          import version_lib
+
+          snapshot = version_lib.snapshot_stamp(commit_date or "", pinned or "")
+          release_tag = version_lib.release_tag(fw_ver, commit_date, pinned)
+          package_version = version_lib.deb_version(tag, pkg_rel, snapshot, fw_ver)
+          deb_name = version_lib.asset_name(tag, pkg_rel, snapshot, fw_ver)
           print(f"release_tag={release_tag}")
 
           def emit(build, reason):
@@ -397,6 +370,11 @@ jobs:
           name: ${{ steps.parser.outputs.TITLE }}
           body: ${{ steps.commitmsg.outputs.BODY }}
           draft: false
+          # Keep-stable per 2026-09-29 decision: safe because release_tag is
+          # always date+hash suffixed (v<upstream>.<YYYYMMDD>.<shorthash>),
+          # never a bare semver, so per-deb tags cannot collide with stable
+          # tags; the release_guard gate above + overwrite_files:false below
+          # preserve asset immutability.
           prerelease: false
           make_latest: true
           files: |
