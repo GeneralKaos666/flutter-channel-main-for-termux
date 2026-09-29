@@ -777,9 +777,13 @@ if ! [ -d "$FLUTTER_ROOT/.git" ]; then
 	"$GIT_BIN" config user.email "termux@example.com"
 	"$GIT_BIN" config user.name "termux"
 	"$GIT_BIN" add -f bin/flutter bin/internal/engine.version bin/internal/*.version >/dev/null 2>&1 || true
-	"$GIT_BIN" commit -q -m "Init framework" >/dev/null 2>&1 || true
+	"$GIT_BIN" -c commit.gpgsign=false commit -q --no-gpg-sign -m "Init framework" >/dev/null 2>&1 || true
 	"$GIT_BIN" branch -M stable >/dev/null 2>&1 || true
-	"$GIT_BIN" tag -f "$CANONICAL_FLUTTER_VER" HEAD >/dev/null 2>&1
+	if ! "$GIT_BIN" rev-parse --verify HEAD >/dev/null 2>&1; then
+		echo "Error: Failed to create synthetic repository commit (check git configuration)" >&2
+		exit 1
+	fi
+	"$GIT_BIN" -c tag.gpgsign=false tag -f "$CANONICAL_FLUTTER_VER" HEAD >/dev/null 2>&1
 	echo "{\"synthetic\":true,\"package\":\"termux-flutter-wsl\",\"version\":\"$CANONICAL_FLUTTER_VER\"}" >.git/termux_synthetic
 	rm -f .git/FETCH_HEAD
 	echo "  ✓ Synthetic tag $CANONICAL_FLUTTER_VER created on stable branch"
@@ -801,7 +805,7 @@ elif is_synthetic_repo "$FLUTTER_ROOT"; then
 	done
 	head_tag=$("$GIT_BIN" tag --points-at HEAD 2>/dev/null || echo "")
 	if ! echo "$head_tag" | grep -qx "$CANONICAL_FLUTTER_VER"; then
-		"$GIT_BIN" tag -f "$CANONICAL_FLUTTER_VER" HEAD >/dev/null 2>&1
+		"$GIT_BIN" -c tag.gpgsign=false tag -f "$CANONICAL_FLUTTER_VER" HEAD >/dev/null 2>&1
 	fi
 	rm -f .git/FETCH_HEAD
 	echo "{\"synthetic\":true,\"package\":\"termux-flutter-wsl\",\"version\":\"$CANONICAL_FLUTTER_VER\"}" >.git/termux_synthetic
@@ -1213,11 +1217,23 @@ echo "[9/13] Installing cmdline-tools..."
 if [ ! -d "$ANDROID_SDK/cmdline-tools/latest" ]; then
 	mkdir -p $ANDROID_SDK/cmdline-tools
 	cd $ANDROID_SDK/cmdline-tools
-	curl -fsSL -o tools.zip 'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
-	unzip -q tools.zip
-	mv cmdline-tools latest
-	rm tools.zip
-	echo "  ✓ cmdline-tools installed"
+	(
+		set +e
+		curl -fsSL -o tools.zip 'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip' >/dev/null 2>&1
+	) || true
+	if [ -s tools.zip ]; then
+		unzip -q tools.zip 2>/dev/null || true
+		if [ -d cmdline-tools ]; then
+			rm -rf latest 2>/dev/null || true
+			mv cmdline-tools latest
+		fi
+		rm -f tools.zip
+	fi
+	if [ -d latest ]; then
+		echo "  ✓ cmdline-tools installed"
+	else
+		echo "  ⚠ cmdline-tools download unavailable, skipping (re-run post_install.sh when online)"
+	fi
 else
 	echo "  ✓ cmdline-tools already exists"
 fi
