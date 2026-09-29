@@ -281,10 +281,20 @@ def main():
         # Single-sourced from version_lib (same math as utils.deb_version,
         # utils.release_tag, and utils.snapshot_stamp).
         try:
-            from version_lib import asset_name, deb_version, release_tag, snapshot_stamp
+            from version_lib import (
+                asset_name,
+                deb_version,
+                snapshot_stamp,
+            )
+            from version_lib import release_tag as lib_release_tag
         except ImportError:
             sys.path.insert(0, str(Path(__file__).resolve().parent))
-            from version_lib import asset_name, deb_version, release_tag, snapshot_stamp
+            from version_lib import (
+                asset_name,
+                deb_version,
+                snapshot_stamp,
+            )
+            from version_lib import release_tag as lib_release_tag
         fw_ver = str(flutter_cfg.get("framework_version", "") or "").strip()
         fw_date = str(flutter_cfg.get("framework_commit_date", "") or "")
         fw_rev = str(flutter_cfg.get("framework_revision", "") or "")
@@ -297,7 +307,7 @@ def main():
         elif flutter_tag[:1].isdigit():
             expected_tag = str(flutter_tag)
         else:
-            expected_tag = release_tag(fw_ver, fw_date, fw_rev) or str(flutter_tag)
+            expected_tag = lib_release_tag(fw_ver, fw_date, fw_rev) or str(flutter_tag)
         expected_package_version = deb_version(flutter_tag, pkg_rel, snapshot, fw_ver)
         default_asset = asset_name(flutter_tag, pkg_rel, snapshot, fw_ver)
     expected_asset = flutter_cfg.get("asset_name") or default_asset
