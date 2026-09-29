@@ -21,9 +21,11 @@ stable: `build.toml [flutter] tag` is `main`, so the produced deb is
   upstream HEAD → `flutter --version --machine` → pins → `generate_versions.py`
   → drift `--fix` → push); use the manual loop above when patches need
   rebasing or the bot is red.
-- The `build.yml` publish step runs only on manual dispatch and publishes
-  from `refs/heads/main` as a prerelease; there is no automatic release
-  bot on this repo.
+- The `build.yml` publish step runs on its daily gated schedule (only when
+  there is anything new) and on manual dispatch, publishing from
+  `refs/heads/main` as a prerelease; the `gate` job skips stale or
+  already-released pins, so no new tag is pushed until conflicts are
+  resolved.
 - Full pipeline still runs on a build host via `python3 build.py`
   (`sysroot` then `configure --arch=arm64` / `build` / `debuild` per
   mode). It cannot run on-device (no `gclient` / NDK here).
@@ -62,7 +64,7 @@ git diff --check
 GitHub Actions is currently split into these tracks:
 
 - `.github/workflows/ci.yml`: GitHub-hosted sanity checks for PRs/pushes.
-- `.github/workflows/build.yml`: GitHub-hosted full `.deb` build on manual dispatch only, publishes a prerelease.
+- `.github/workflows/build.yml`: GitHub-hosted full `.deb` build on a daily gated schedule (only if anything new) plus manual dispatch, publishes a prerelease.
 - `.github/workflows/build-deb.yml`: self-hosted fallback full `.deb` build with evidence/artifact collection.
 - `.github/workflows/device-smoke.yml`: manual self-hosted Windows + ADB tablet smoke test.
 - `.github/workflows/release-check.yml`: Release asset metadata / SHA256 checks.

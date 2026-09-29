@@ -198,10 +198,12 @@ troubleshooting.
 
 ## CI/CD
 
-Releases are built and published as prereleases by manually dispatching the
-GitHub-hosted `Build` workflow (`build.yml`) on `ubuntu-latest`; a
-self-hosted evidence-tracked fallback (`build-deb.yml`) and an ADB device
-smoke gate (`device-smoke.yml`) support manual runs.
+Releases are built and published as prereleases by the daily gated `Build`
+workflow (`build.yml`) on `ubuntu-latest` — it builds only when there is
+anything new, with the deb name derived at build time — and can also be
+triggered by manual dispatch; a self-hosted evidence-tracked fallback
+(`build-deb.yml`) and an ADB device smoke gate (`device-smoke.yml`)
+support manual runs.
 See [CI/CD and device lab](docs/CI_CD.md).
 
 ## Documentation

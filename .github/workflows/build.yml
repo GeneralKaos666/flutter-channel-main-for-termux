@@ -7,6 +7,13 @@ on:
         description: 'Disable sccache (cache-poison escape hatch)'
         required: false
         default: 'false'
+  schedule:
+    # Daily autobuild (if anything new). Refresh runs 09:00 UTC; build at
+    # 12:00 UTC so it sees freshly pushed pins. The gate job skips the
+    # multi-hour build when pins are stale (refresh conflict/failed) or the
+    # deb for the current pins is already released — so no new tag is ever
+    # pushed until conflicts are resolved and the build succeeds.
+    - cron: '0 12 * * *'
 
 concurrency:
   group: build-hosted
@@ -16,9 +23,111 @@ permissions:
   contents: write
 
 jobs:
-  Ubuntu:
+  gate:
+    # Cheap change detector: decides whether the expensive engine build
+    # should run. Manual dispatches always build. Scheduled runs build only
+    # when build.toml pins equal upstream HEAD (no refresh conflict pending)
+    # AND the deb derived from those pins is absent from the release.
+    # The deb name is recomputed here from build.toml at tip, so it always
+    # matches whatever `python build.py` would package at build time.
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
+    timeout-minutes: 10
+    outputs:
+      should_build: ${{ steps.decide.outputs.should_build }}
+      reason: ${{ steps.decide.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Decide whether a build is needed
+        id: decide
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          EVENT="${{ github.event_name }}"
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            echo "reason=manual-dispatch" >> "$GITHUB_OUTPUT"
+            echo "Manual dispatch: always build."
+            exit 0
+          fi
+          HEAD=$(git ls-remote https://github.com/flutter/flutter.git HEAD | cut -f1)
+          if [ -z "$HEAD" ]; then
+            echo "empty ls-remote result for upstream HEAD" >&2
+            exit 1
+          fi
+          python3 - "$HEAD" >> "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import os
+          import sys
+          import tomllib
+          import urllib.error
+          import urllib.request
+
+          head = sys.argv[1]
+          with open("build.toml", "rb") as f:
+              cfg = tomllib.load(f)
+          flutter = cfg.get("flutter", {})
+          tag = str(flutter.get("tag") or "main")
+          pinned = str(flutter.get("framework_revision") or "")
+          commit_date = str(flutter.get("framework_commit_date") or "")
+          pkg_rel = str(cfg.get("package", {}).get("pkg_rel") or "").strip()
+
+          # Mirror utils.snapshot_stamp + utils.deb_version so the gate deb
+          # name matches Build.output() at build time.
+          day = commit_date.split(" ")[0].replace("-", "") if commit_date else ""
+          snapshot = f"{day}.{pinned[:7]}" if day and pinned else ""
+          if tag[:1].isdigit():
+              base = tag
+          else:
+              base = f"0~{tag}" + (f".{snapshot}" if snapshot else "")
+          package_version = f"{base}-{pkg_rel}" if pkg_rel else base
+          deb_name = f"flutter_{package_version}_aarch64.deb"
+
+          def emit(build, reason):
+              print(f"should_build={'true' if build else 'false'}")
+              print(f"reason={reason}")
+              print(f"upstream HEAD: {head[:12]}, pinned: {pinned[:12] if pinned else '(empty)'}, deb: {deb_name} -> {reason}")
+
+          if not pinned:
+              emit(False, "no-pinned-revision")
+              return
+          if head != pinned:
+              # Refresh has not landed (conflict, failure, or not yet run):
+              # do NOT build stale pins and do NOT push any tag.
+              emit(False, "pins-stale")
+              return
+
+          repo = os.environ.get("GITHUB_REPOSITORY", "")
+          token = os.environ.get("GITHUB_TOKEN", "")
+          url = f"https://api.github.com/repos/{repo}/releases/tags/{tag}"
+          headers = {
+              "Accept": "application/vnd.github+json",
+              "X-GitHub-Api-Version": "2022-11-28",
+          }
+          if token:
+              headers["Authorization"] = "Bearer " + token
+          req = urllib.request.Request(url, headers=headers)
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  release = json.loads(resp.read().decode("utf-8"))
+          except urllib.error.HTTPError as e:
+              if e.code == 404:
+                  emit(True, "no-release-yet")
+                  return
+              raise
+          assets = {a.get("name", "") for a in release.get("assets", [])}
+          if deb_name in assets:
+              emit(False, "already-released")
+          else:
+              emit(True, "new-pins-unreleased")
+
+          PY
+
+  Ubuntu:
+    needs: gate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || needs.gate.outputs.should_build == 'true'
     timeout-minutes: 360
 
     steps:

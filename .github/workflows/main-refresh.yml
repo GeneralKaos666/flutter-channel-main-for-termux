@@ -2,10 +2,12 @@ name: main-refresh
 
 # Tracks Flutter main: probes upstream HEAD nightly, refreshes the
 # build.toml pins + snapshot stamp when main moves, and pushes so the next
-# manual build.yml run packages the latest engine. Refresh only — builds
-# and releases stay manual (see build.yml). There is intentionally no
-# stable-version logic here (the old autorelease.yml was deleted because
-# its stable bump corrupted main-tracking files).
+# scheduled build.yml run (12:00 UTC, gated) packages the latest engine.
+# Refresh only — it never builds and never pushes tags (see build.yml).
+# Patch conflicts fail closed here (no pin push) and again in build.yml
+# (no tag/release). There is intentionally no stable-version logic here
+# (the old autorelease.yml was deleted because its stable bump corrupted
+# main-tracking files).
 
 on:
   schedule:
@@ -94,6 +96,23 @@ jobs:
           print(f"NEW_DEVTOOLS={devtools}")
           PY
 
+      - name: Validate patches against probed HEAD (fail closed)
+        if: steps.check.outputs.should_refresh == 'true'
+        run: |
+          set -euo pipefail
+          # On patch conflict stop here: no pin bump, no push, and therefore
+          # no downstream build/tag. Engine patch must apply cleanly to the
+          # probed framework checkout; dart/skia trees are absent here
+          # (fetched via .gclient custom_hooks), so parse-level check only
+          # (same contract as validate.yml).
+          cd /tmp/flutter-probe
+          git apply --check "${GITHUB_WORKSPACE}/patches/engine.patch"
+          git apply --stat "${GITHUB_WORKSPACE}/patches/dart.patch" > /tmp/dart.stat
+          git apply --stat "${GITHUB_WORKSPACE}/patches/skia.patch" > /tmp/skia.stat
+          grep -Eq ' (pkg|runtime|sdk)/' /tmp/dart.stat
+          grep -Eq ' include/' /tmp/skia.stat
+          echo "patches validate OK against ${{ steps.probe.outputs.HEAD }}"
+
       - name: Bump build.toml pins
         if: steps.check.outputs.should_refresh == 'true'
         run: |
@@ -140,4 +159,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "chore(main): refresh pins to flutter/main@${{ steps.probe.outputs.HEAD }}"
+          # Branch push only (never --tags, never --force): on a push race
+          # (non-fast-forward) this fails with no pin push, and the gated
+          # build.yml run then skips (pins-stale) so no new tag is pushed
+          # until the conflict is resolved.
           git push

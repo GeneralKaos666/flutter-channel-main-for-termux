@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Snapshot-stamped the deb as `flutter_0~main.20260926.8db5526-1_aarch64.deb` via `utils.deb_version()` / `snapshot_stamp()` so each refresh sorts as an upgrade.
 - No hosted main-channel release exists yet; size/SHA stay `TBD` and installers fail closed until the first main build publishes.
 - Documented the refresh loop (`clone --force` → verify patches → pin versions → drift `--fix` → full verification) in `BUILD_GUIDE.md`.
+- Daily gated autobuild: `main-refresh.yml` (09:00 UTC) validates patches fail-closed before pushing pins, and `build.yml` (12:00 UTC `gate` job) builds only when pins equal upstream HEAD and the deb is unreleased — no new tag until conflicts are resolved; manual dispatch still always builds.
 
 ### Infrastructure & CI
 - Lifted `compileSdk`/`targetSdk` default from 34 to 36 (fail-closed ladder 36→35→34) using Termux aapt2 16.0.0.4 (Android Build-Tools), driven by `build.toml` `[android]` and applied per-project by `post_install.sh`/`flutter_project_config.sh`.
