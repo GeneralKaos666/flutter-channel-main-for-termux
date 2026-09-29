@@ -48,13 +48,21 @@ def replacements(cfg: dict) -> list[tuple[str, str]]:
     fw_rev = str(flutter.get("framework_revision", "") or "")
     stamp_day = fw_date.split(" ")[0].replace("-", "") if fw_date else ""
     snapshot = f"{stamp_day}.{fw_rev[:7]}" if stamp_day and fw_rev else ""
+    # RELEASE_TAG is the GitHub release tag (same math as Build.release_tag),
+    # not the branch name, so installers download from the right release.
+    try:
+        from version_lib import release_tag as lib_release_tag
+    except ImportError:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from version_lib import release_tag as lib_release_tag
+    release = lib_release_tag(fw_ver, fw_date, fw_rev) or tag
     return [
         (r'^export FLUTTER_VERSION="[^"]*"', f'export FLUTTER_VERSION="{tag}"'),
         (
             r'^export FLUTTER_FRAMEWORK_VERSION="[^"]*"',
             f'export FLUTTER_FRAMEWORK_VERSION="{fw_ver}"',
         ),
-        (r'^export RELEASE_TAG="[^"]*"', f'export RELEASE_TAG="{tag}"'),
+        (r'^export RELEASE_TAG="[^"]*"', f'export RELEASE_TAG="{release}"'),
         (r'^export FLUTTER_SNAPSHOT="[^"]*"', f'export FLUTTER_SNAPSHOT="{snapshot}"'),
         (r'^export NDK_VERSION="[^"]*"', f'export NDK_VERSION="{ndk.get("version", "")}"'),
         (

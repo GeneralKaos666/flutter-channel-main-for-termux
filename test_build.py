@@ -499,5 +499,21 @@ def test_version_single_source_matches_build():
     )
 
 
+def test_drift_config_matches_build_output():
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path("scripts/ci").resolve()))
+    from check_version_drift import load_build_config
+
+    import build
+
+    os.environ.setdefault("ANDROID_NDK", "/tmp/android-ndk")
+    b = build.Build()
+    cfg = load_build_config()
+    assert cfg["release_tag"] == b.release_tag
+    assert cfg["asset_name"] == b.output("arm64").name
+
+
 if __name__ == "__main__":
     unittest.main()

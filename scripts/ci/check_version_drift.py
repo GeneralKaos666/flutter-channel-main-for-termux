@@ -138,7 +138,6 @@ def load_build_config(root_path: Path | None = None) -> dict[str, str]:
 
     flutter_cfg = data.get("flutter", {})
     tag = flutter_cfg.get("tag", "")
-    release_tag = flutter_cfg.get("release_tag", "") or str(tag)
     framework_version = str(flutter_cfg.get("framework_version", "") or "")
     dart_version = flutter_cfg.get("dart_version", "")
     engine_commit = flutter_cfg.get("engine_commit", "")
@@ -147,34 +146,27 @@ def load_build_config(root_path: Path | None = None) -> dict[str, str]:
     devtools_version = flutter_cfg.get("devtools_version", "")
     sha256 = flutter_cfg.get("sha256", "")
     size = flutter_cfg.get("size", "")
-    asset_name = flutter_cfg.get("asset_name", "")
     package_cfg = data.get("package", {})
     pkg_rel = str(package_cfg.get("pkg_rel", "") or "")
 
-    # Single-sourced from version_lib (same math as utils.deb_version +
-    # utils.flutter_to_deb_upstream: dpkg versions must start with a digit;
-    # branch tags like 'main' use the framework version from `flutter
-    # --version --machine` in Debian tilde form plus the snapshot stamp,
-    # e.g. '3.47.6~0.0.pre+main.20260926.8db5526-1').
+    # Single-sourced from version_lib, same math as Build (snapshot stamp,
+    # deb_version for the asset name, release_tag for the GitHub release).
     try:
-        from version_lib import flutter_to_deb_upstream, snapshot_stamp
+        from version_lib import deb_version, snapshot_stamp
+        from version_lib import release_tag as lib_release_tag
     except ImportError:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
-        from version_lib import flutter_to_deb_upstream, snapshot_stamp
+        from version_lib import deb_version, snapshot_stamp
+        from version_lib import release_tag as lib_release_tag
 
     # Single-sourced from version_lib so each main refresh renames the asset.
     if framework_commit_date and framework_revision:
         snapshot = snapshot_stamp(framework_commit_date, framework_revision)
     else:
         snapshot = ""
-    if str(tag)[:1].isdigit():
-        deb_tag = str(tag)
-    else:
-        fw_up = flutter_to_deb_upstream(framework_version)
-        if fw_up:
-            deb_tag = fw_up + (f"+main.{snapshot}" if snapshot else "")
-        else:
-            deb_tag = f"0~{tag}" + (f".{snapshot}" if snapshot else "")
+    package_version = deb_version(str(tag), pkg_rel, snapshot, framework_version)
+    release_tag = lib_release_tag(framework_version, framework_commit_date, framework_revision)
+    asset_name = f"flutter_{package_version}_aarch64.deb"
 
     if not tag:
         fail("build.toml [flutter] missing 'tag'")
@@ -191,7 +183,7 @@ def load_build_config(root_path: Path | None = None) -> dict[str, str]:
         "sha256": str(sha256),
         "size": str(size) if size else "",
         "pkg_rel": pkg_rel,
-        "asset_name": str(asset_name) or (f"flutter_{deb_tag}-{pkg_rel}_aarch64.deb" if pkg_rel else f"flutter_{deb_tag}_aarch64.deb"),
+        "asset_name": str(asset_name),
         "channel": "main" if str(tag) == "main" else "stable",
     }
 

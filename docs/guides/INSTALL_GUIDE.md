@@ -49,7 +49,7 @@ cd ~
 # NOTE (tracking-main): no hosted main-channel release exists yet. Build the
 # deb yourself (see BUILD_GUIDE.md) and adb push it, e.g.:
 # adb push flutter_3.49.0~0.1.pre+main.20260929.fab9915-1_aarch64.deb /data/local/tmp/
-wget https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/main/flutter_3.49.0~0.1.pre+main.20260929.fab9915-1_aarch64.deb
+wget https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/v3.49.0~0.1.pre.20260929.fab9915/flutter_3.49.0~0.1.pre+main.20260929.fab9915-1_aarch64.deb
 sha256sum flutter_3.49.0~0.1.pre+main.20260929.fab9915-1_aarch64.deb
 # No published hash to confirm against yet; the installer fails closed until
 # EXPECTED_SHA256 is refreshed after the first main build.
