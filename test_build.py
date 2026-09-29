@@ -515,5 +515,16 @@ def test_drift_config_matches_build_output():
     assert cfg["asset_name"] == b.output("arm64").name
 
 
+def test_main_release_tag_never_collides_with_stable():
+    import re
+
+    import build
+
+    os.environ.setdefault("ANDROID_NDK", "/tmp/android-ndk")
+    b = build.Build()
+    assert not re.fullmatch(r"v?\d+\.\d+\.\d+", b.release_tag)
+    assert re.fullmatch(r"v(\d+\.\d+\.\d+~.+|main)\.\d{8}\.[0-9a-f]{7}", b.release_tag)
+
+
 if __name__ == "__main__":
     unittest.main()

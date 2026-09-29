@@ -371,7 +371,12 @@ jobs:
           name: ${{ steps.parser.outputs.TITLE }}
           body: ${{ steps.commitmsg.outputs.BODY }}
           draft: false
-          prerelease: false
+          # Keep-stable per 2026-09-29 decision: safe because release_tag is
+          # always date+hash suffixed (v<upstream>.<YYYYMMDD>.<shorthash>),
+          # never a bare semver, so per-deb tags cannot collide with stable
+          # tags; the release_guard gate above + overwrite_files:false below
+          # preserve asset immutability.
+          prerelease: false # Keep-stable per 2026-09-29 decision: safe because release_tag is date+hash suffixed, never bare semver.
           make_latest: true
           files: |
             ${{ steps.artifact.outputs.deb }}

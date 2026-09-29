@@ -144,6 +144,20 @@ You can also dispatch `Build` through `workflow_dispatch`. Any push-race or
 patch conflict fails closed: resolve the conflict and get a green build before
 any pin push, build, or new tag.
 
+### Keep-stable per-deb policy (2026-09-29 decision)
+
+Each main `.deb` ships under its own date+hash-suffixed tag (`$RELEASE_TAG`,
+`v<upstream>.<YYYYMMDD>.<shorthash>`), never a bare semver, so a main tag can
+never collide with a stable release tag and main debs never reuse a stable
+tag or asset name. The tag shape is proven by
+`test_build.py::test_main_release_tag_never_collides_with_stable`. Because
+every refresh renames both tag and asset, stable `Latest` moves with each
+per-deb publish by design; that is expected, not a regression. Asset
+immutability is guarded twice: the `release_guard` job sets
+`should_publish=false` when the deb already exists on `$RELEASE_TAG`, and the
+publish step uses `overwrite_files: false`, so reruns leave existing assets in
+place.
+
 The release flow:
 
 1. Merge only after PR CI passes.
