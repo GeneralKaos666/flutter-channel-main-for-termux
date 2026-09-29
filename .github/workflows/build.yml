@@ -35,6 +35,7 @@ jobs:
     outputs:
       should_build: ${{ steps.decide.outputs.should_build }}
       reason: ${{ steps.decide.outputs.reason }}
+      release_tag: ${{ steps.decide.outputs.release_tag }}
     steps:
       - uses: actions/checkout@v7.0.1
 
@@ -76,30 +77,47 @@ jobs:
 
           # Mirror utils.snapshot_stamp + utils.deb_version (incl.
           # flutter_to_deb_upstream) so the gate deb name matches
-          # Build.output() at build time.
+          # Build.output() at build time. Mirror utils.release_tag for the
+          # stable per-deb GitHub release tag (v<upstream>.<YYYYMMDD>.<shorthash>).
           day = commit_date.split(" ")[0].replace("-", "") if commit_date else ""
           snapshot = f"{day}.{pinned[:7]}" if day and pinned else ""
+          fw_up = ""
+          if fw_ver and fw_ver != "0.0.0-unknown":
+              if "-" in fw_ver:
+                  _b, _r = fw_ver.split("-", 1)
+                  fw_up = f"{_b}~{_r.replace('-', '.')}"
+              else:
+                  fw_up = fw_ver
+          short = pinned[:7] if pinned else ""
+          if fw_up and day and short:
+              release_tag = f"v{fw_up}.{day}.{short}"
+          elif fw_up and day:
+              release_tag = f"v{fw_up}.{day}"
+          elif fw_up and short:
+              release_tag = f"v{fw_up}.{short}"
+          elif fw_up:
+              release_tag = f"v{fw_up}"
+          elif day and short:
+              release_tag = f"vmain.{day}.{short}"
+          elif day:
+              release_tag = f"vmain.{day}"
+          else:
+              release_tag = tag
           if tag[:1].isdigit():
               base = tag
           else:
-              fw_up = ""
-              if fw_ver and fw_ver != "0.0.0-unknown":
-                  if "-" in fw_ver:
-                      _b, _r = fw_ver.split("-", 1)
-                      fw_up = f"{_b}~{_r.replace('-', '.')}"
-                  else:
-                      fw_up = fw_ver
               if fw_up:
                   base = fw_up + (f"+main.{snapshot}" if snapshot else "")
               else:
                   base = f"0~{tag}" + (f".{snapshot}" if snapshot else "")
           package_version = f"{base}-{pkg_rel}" if pkg_rel else base
           deb_name = f"flutter_{package_version}_aarch64.deb"
+          print(f"release_tag={release_tag}")
 
           def emit(build, reason):
               print(f"should_build={'true' if build else 'false'}")
               print(f"reason={reason}")
-              print(f"upstream HEAD: {head[:12]}, pinned: {pinned[:12] if pinned else '(empty)'}, deb: {deb_name} -> {reason}")
+              print(f"upstream HEAD: {head[:12]}, pinned: {pinned[:12] if pinned else '(empty)'}, tag: {release_tag}, deb: {deb_name} -> {reason}")
 
           if not pinned:
               emit(False, "no-pinned-revision")
@@ -112,7 +130,7 @@ jobs:
 
           repo = os.environ.get("GITHUB_REPOSITORY", "")
           token = os.environ.get("GITHUB_TOKEN", "")
-          url = f"https://api.github.com/repos/{repo}/releases/tags/{tag}"
+          url = f"https://api.github.com/repos/{repo}/releases/tags/{release_tag}"
           headers = {
               "Accept": "application/vnd.github+json",
               "X-GitHub-Api-Version": "2022-11-28",
@@ -231,7 +249,7 @@ jobs:
       - name: parse tag
         id: parser
         run: |
-          TAG=$(NO_RECORD=1 python build.py tag)
+          TAG=$(NO_RECORD=1 python -c "import build; print(build.Build().release_tag)")
           echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
           echo "TITLE=Flutter $TAG" >> "$GITHUB_OUTPUT"
 
@@ -378,33 +396,9 @@ jobs:
           tag_name: ${{ steps.parser.outputs.TAG }}
           name: ${{ steps.parser.outputs.TITLE }}
           body: ${{ steps.commitmsg.outputs.BODY }}
-          prerelease: true
-          files: |
-            ${{ steps.artifact.outputs.deb }}
-            ${{ steps.artifact.outputs.deb }}.sha256
-            ${{ steps.artifact.outputs.deb }}.size.txt
-            inventory.txt
-            build_metadata.json
-            build_evidence.json
-          overwrite_files: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: prerelease tag
-        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
-        id: pretag
-        run: |
-          echo "TAG=main-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: release (manual prerelease)
-        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.pretag.outputs.TAG }}
-          target_commitish: ${{ github.sha }}
-          name: Flutter main pre-release ${{ steps.pretag.outputs.TAG }}
-          body: ${{ steps.commitmsg.outputs.BODY }}
-          prerelease: true
+          draft: false
+          prerelease: false
+          make_latest: true
           files: |
             ${{ steps.artifact.outputs.deb }}
             ${{ steps.artifact.outputs.deb }}.sha256

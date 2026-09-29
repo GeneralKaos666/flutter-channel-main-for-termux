@@ -23,7 +23,7 @@ stable: `build.toml [flutter] tag` is `main`, so the produced deb is
   rebasing or the bot is red.
 - The `build.yml` publish step runs on its daily gated schedule (only when
   there is anything new) and on manual dispatch, publishing from
-  `refs/heads/main` as a prerelease; the `gate` job skips stale or
+  `refs/heads/main` as a stable versioned release; the `gate` job skips stale or
   already-released pins, so no new tag is pushed until conflicts are
   resolved.
 - Run the full pipeline on a build host via `python3 build.py`
@@ -64,7 +64,7 @@ git diff --check
 GitHub Actions uses these tracks:
 
 - `.github/workflows/ci.yml`: GitHub-hosted sanity checks for PRs/pushes.
-- `.github/workflows/build.yml`: GitHub-hosted full `.deb` build on a daily gated schedule (only if anything new) plus manual dispatch, publishes a prerelease.
+- `.github/workflows/build.yml`: GitHub-hosted full `.deb` build on a daily gated schedule (only if anything new) plus manual dispatch, publishes a stable versioned release.
 - `.github/workflows/build-deb.yml`: self-hosted fallback full `.deb` build with evidence/artifact collection.
 - `.github/workflows/device-smoke.yml`: manual self-hosted Windows + ADB tablet smoke test.
 - `.github/workflows/release-check.yml`: Release asset metadata / SHA256 checks.

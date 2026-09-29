@@ -38,7 +38,7 @@ References:
 | Workflow | File | Runner | Trigger | Purpose |
 |----------|------|--------|---------|---------|
 | CI | `.github/workflows/ci.yml` | `ubuntu-latest` | PR, push to `main`, manual | Python/shell/PowerShell syntax, package/docs/workflow sanity, whitespace checks |
-| Build | `.github/workflows/build.yml` | `ubuntu-latest` | scheduled daily (gated, only if anything new) + `workflow_dispatch` | Full `build.py` pipeline on GitHub-hosted runner, `.deb` packaging, prerelease publish |
+| Build | `.github/workflows/build.yml` | `ubuntu-latest` | scheduled daily (gated, only if anything new) + `workflow_dispatch` | Full `build.py` pipeline on GitHub-hosted runner, `.deb` packaging, stable release publish |
 | Build deb (self-hosted) | `.github/workflows/build-deb.yml` | self-hosted Linux/WSL | manual | Full `build.py` pipeline, `.deb` packaging, optional release publishing (fallback) |
 | Device smoke | `.github/workflows/device-smoke.yml` | self-hosted Windows + ADB tablet | manual | Install deb in Termux, run `post_install.sh`, `flutter doctor`, create/build APK/Linux smoke |
 | Release check | `.github/workflows/release-check.yml` | `ubuntu-latest` | release publish/edit, manual | Verify release asset name, size, and SHA256 digest |
@@ -137,8 +137,10 @@ then run the same patched pipeline (see above) before uploading:
 Merging to `main` leaves publishing to the scheduled `Build` run. The daily scheduled `Build`
 run (12:00 UTC, after the 09:00 UTC pin refresh) builds only when the pins
 equal upstream HEAD and the deb for those pins is not yet released, then
-publishes the resulting `.deb` as a prerelease under the Flutter version
-tag. You can also dispatch `Build` through `workflow_dispatch`. Any push-race or
+publishes the resulting `.deb` as a stable release under a versioned tag
+(`v<upstream>.<YYYYMMDD>.<shorthash>`, e.g. `v3.49.0~0.1.pre.20260929.fab9915`) while the deb
+itself keeps the full dpkg version (`3.49.0~0.1.pre+main.20260929.fab9915-1`).
+You can also dispatch `Build` through `workflow_dispatch`. Any push-race or
 patch conflict fails closed: resolve the conflict and get a green build before
 any pin push, build, or new tag.
 

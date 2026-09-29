@@ -813,9 +813,12 @@ def main():
                     run_path = str(run_obj.get("path", "")).strip()
                     run_num = run_obj.get("run_number")
 
-                    if run_path != ".github/workflows/build-deb.yml":
+                    if run_path not in (
+                        ".github/workflows/build.yml",
+                        ".github/workflows/build-deb.yml",
+                    ):
                         print(
-                            f"Error: Workflow run {run_id} workflow path mismatch! Expected '.github/workflows/build-deb.yml', got '{run_path}'"
+                            f"Error: Workflow run {run_id} workflow path mismatch! Expected '.github/workflows/build.yml' or '.github/workflows/build-deb.yml', got '{run_path}'"
                         )
                         sys.exit(1)
                     if run_head_sha != meta_commit.lower():
@@ -834,7 +837,7 @@ def main():
                         )
                         sys.exit(1)
                     print(
-                        f"  ✓ Verified workflow run_id {run_id} (# {b_num} on .github/workflows/build-deb.yml) succeeded for source_commit {meta_commit[:8]}..."
+                        f"  ✓ Verified workflow run_id {run_id} (# {b_num} on {run_path}) succeeded for source_commit {meta_commit[:8]}..."
                     )
 
                 # Verify workflow run produced and published the matching release artifact
