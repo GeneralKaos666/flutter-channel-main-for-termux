@@ -37,7 +37,7 @@ or `python3 build.py patch --file=./patches/<name>.patch --path=<repo path>`. Sk
 Key details:
 
 - Modes come from `build.toml [build] runtime`, currently `['release']` only. To also build debug/profile you must rebuild those steps with `--mode=debug|profile`.
-- `tag` is `'main'` (non-semver, no `v` prefix). Release asset is snapshot-stamped (`flutter_3.49.0~0.1.pre+main.20260929.fab9915-1_aarch64.deb`) via `utils.deb_version()` from the `framework_*` pins: never hardcode a stamped name; derive it or run drift `--fix`.
+- `tag` is `'main'` (non-semver, no `v` prefix). Release asset is snapshot-stamped (`flutter_3.49.0~0.1.pre+main.20260930.2741d83-1_aarch64.deb`) via `utils.deb_version()` from the `framework_*` pins: never hardcode a stamped name; derive it or run drift `--fix`.
 - Prefix `NO_RECORD=1` to bypass the `@utils.record` debug-logging wrapper (it logs and re-raises; bypass reduces log noise, used by CI for `python3 build.py tag`).
 - NDK discovery: build.py reads `[ndk] path` from build.toml, else the `ANDROID_NDK` env var. Workflows translate `NDK_PATH`/`ANDROID_NDK_HOME` → `ANDROID_NDK`.
 - Host must have `dpkg` (sysroot.py runs `dpkg -x`) and `ar` (package.py runs `ar rc`).

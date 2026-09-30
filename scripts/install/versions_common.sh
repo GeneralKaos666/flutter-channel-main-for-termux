@@ -12,8 +12,8 @@ export FLUTTER_VERSION="main"
 # final (3.47.6~0.0.pre+main.<snap>-1 > 3.47.5-1, < 3.47.6-1).
 export FLUTTER_FRAMEWORK_VERSION="3.49.0-0.1.pre"
 export FLUTTER_PKG_REL="${FLUTTER_PKG_REL:-1}"
-export FLUTTER_SNAPSHOT="20260929.fab9915"
-export RELEASE_TAG="v3.49.0~0.1.pre.20260929.fab9915"
+export FLUTTER_SNAPSHOT="20260930.2741d83"
+export RELEASE_TAG="v3.49.0~0.1.pre.20260930.2741d83"
 # No hosted main-channel release exists yet: refresh after the first main
 # build or pass FLUTTER_DEB_SHA256. Installers fail closed until then.
 export EXPECTED_SHA256="TBD-refresh-after-first-main-build"
