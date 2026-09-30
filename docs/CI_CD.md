@@ -140,7 +140,7 @@ Merging to `main` leaves publishing to the push-triggered `Build` run. The `Buil
 run (push of fresh 6h pins, plus 12:00 UTC fallback) builds only when the pins
 equal upstream HEAD and the deb for those pins is not yet released, then
 publishes the resulting `.deb` as a stable release under a versioned tag
-(`v<upstream>.<YYYYMMDD>.<shorthash>`, e.g. `v3.49.0~0.1.pre.20260929.fab9915`) while the deb
+(`v<upstream>.<YYYYMMDD>.<shorthash>`, e.g. `v3.49.0-0.1.pre.20260929.fab9915`) while the deb
 itself keeps the full dpkg version (`3.49.0~0.1.pre+main.20260929.fab9915-1`).
 You can also dispatch `Build` through `workflow_dispatch`. Any push-race or
 patch conflict fails closed: resolve the conflict and get a green build before

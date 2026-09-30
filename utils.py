@@ -64,7 +64,7 @@ def release_tag(framework_version: str, commit_date: str, revision: str = "") ->
     Keeps the .deb full (deb_version) for dpkg monotonicity while the
     GitHub release uses a short human tag, e.g. framework
     '3.49.0-0.1.pre' + '2026-09-29 ...' + 'fab9915...' ->
-    'v3.49.0~0.1.pre.20260929.fab9915'.
+    'v3.49.0-0.1.pre.20260929.fab9915'.
     Falls back to date-only or version-only when a pin is missing.
     """
     return _lib_release_tag(framework_version, commit_date, revision)

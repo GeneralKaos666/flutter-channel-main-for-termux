@@ -47,10 +47,14 @@ def release_tag(framework_version: str, commit_date: str, revision: str = "") ->
     Keeps the .deb full (deb_version) for dpkg monotonicity while the
     GitHub release uses a short human tag, e.g. framework
     '3.49.0-0.1.pre' + '2026-09-29 ...' + 'fab9915...' ->
-    'v3.49.0~0.1.pre.20260929.fab9915'.
+    'v3.49.0-0.1.pre.20260929.fab9915'.
     Falls back to date-only or version-only when a pin is missing.
+
+    NOTE: must stay a valid git ref (no '~': git check-ref-format
+    rejects it, and the GitHub release API fails finalizing with
+    "tag_name is not a valid tag"). Debian '~' is only for deb_version.
     """
-    fw = flutter_to_deb_upstream(framework_version)
+    fw = flutter_to_deb_upstream(framework_version).replace("~", "-")
     day = re.split(r"[ T]", str(commit_date or "").strip(), maxsplit=1)[0].replace("-", "")
     short = str(revision or "").strip()[:7]
     if fw and day and short:
