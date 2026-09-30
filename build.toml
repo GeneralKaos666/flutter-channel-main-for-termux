@@ -8,8 +8,8 @@ framework_version = '3.49.0-0.1.pre'
 repo = 'https://github.com/flutter/flutter'
 path = './flutter'
 dart_version = '3.14.0 (build 3.14.0-271.0.dev)'
-framework_revision = '312a032a699c466ac85a842e2c96e6e6be324023'
-framework_commit_date = '2026-09-30 10:47:26 +0000'
+framework_revision = 'd649d2bfebfeb0018b7333bd7bee1d5127661da2'
+framework_commit_date = '2026-09-30 16:42:53 +0000'
 devtools_version = '2.61.0-dev.0'
 
 [ndk]
