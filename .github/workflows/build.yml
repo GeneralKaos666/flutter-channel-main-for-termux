@@ -7,12 +7,26 @@ on:
         description: 'Disable sccache (cache-poison escape hatch)'
         required: false
         default: 'false'
+  push:
+    branches:
+      - main
+    paths:
+      - 'build.toml'
+      - 'patches/**'
+      - 'package.yaml'
+      - '.gclient'
+      - 'sysroot.lock.json'
+      - 'build.py'
+      - 'utils.py'
+      - 'scripts/ci/version_lib.py'
   schedule:
-    # Daily autobuild (if anything new). Refresh runs 09:00 UTC; build at
-    # 12:00 UTC so it sees freshly pushed pins. The gate job skips the
-    # multi-hour build when pins are stale (refresh conflict/failed) or the
-    # deb for the current pins is already released — so no new tag is ever
-    # pushed until conflicts are resolved and the build succeeds.
+    # Autobuild fallback (if anything new). Refresh runs every 6h and
+    # pushes of fresh pins trigger this workflow immediately via push;
+    # the 12:00 UTC schedule covers missed push events. The gate job
+    # skips the multi-hour build when pins are stale (refresh
+    # conflict/failed) or the deb for the current pins is already
+    # released — so no new tag is ever pushed until conflicts are
+    # resolved and the build succeeds.
     - cron: '0 12 * * *'
 
 concurrency:
@@ -25,9 +39,10 @@ permissions:
 jobs:
   gate:
     # Cheap change detector: decides whether the expensive engine build
-    # should run. Manual dispatches always build. Scheduled runs build only
-    # when build.toml pins equal upstream HEAD (no refresh conflict pending)
-    # AND the deb derived from those pins is absent from the release.
+    # should run. Manual dispatches always build. Scheduled and push runs
+    # build only when build.toml pins equal upstream HEAD (no refresh
+    # conflict pending) AND the deb derived from those pins is absent
+    # from the release.
     # The deb name is recomputed here from build.toml at tip, so it always
     # matches whatever `python build.py` would package at build time.
     runs-on: ubuntu-latest
@@ -155,7 +170,7 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Set up sccache
-        if: github.event.inputs.no-sccache != 'true'
+        if: inputs.no-sccache != 'true'
         uses: mozilla-actions/sccache-action@v0.0.9
         with:
           version: 'v0.10.0'
@@ -199,12 +214,12 @@ jobs:
           CMAKE_CXX_COMPILER_LAUNCHER: sccache
         run: |
           set -euo pipefail
-          if [ "${{ github.event.inputs.no-sccache }}" != "true" ]; then
+          if [ "${{ inputs.no-sccache }}" != "true" ]; then
             sccache --show-stats || true
           fi
           echo "BUILD_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
           python build.py
-          if [ "${{ github.event.inputs.no-sccache }}" != "true" ]; then
+          if [ "${{ inputs.no-sccache }}" != "true" ]; then
             sccache --show-stats || true
           fi
 

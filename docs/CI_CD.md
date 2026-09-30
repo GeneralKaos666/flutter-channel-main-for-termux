@@ -38,7 +38,7 @@ References:
 | Workflow | File | Runner | Trigger | Purpose |
 |----------|------|--------|---------|---------|
 | CI | `.github/workflows/ci.yml` | `ubuntu-latest` | PR, push to `main`, manual | Python/shell/PowerShell syntax, package/docs/workflow sanity, whitespace checks |
-| Build | `.github/workflows/build.yml` | `ubuntu-latest` | scheduled daily (gated, only if anything new) + `workflow_dispatch` | Full `build.py` pipeline on GitHub-hosted runner, `.deb` packaging, stable release publish |
+| Build | `.github/workflows/build.yml` | `ubuntu-latest` | push of fresh pins (event-driven, gated) + scheduled daily fallback + `workflow_dispatch` | Full `build.py` pipeline on GitHub-hosted runner, `.deb` packaging, stable release publish |
 | Build deb (self-hosted) | `.github/workflows/build-deb.yml` | self-hosted Linux/WSL | manual | Full `build.py` pipeline, `.deb` packaging, optional release publishing (fallback) |
 | Device smoke | `.github/workflows/device-smoke.yml` | self-hosted Windows + ADB tablet | manual | Install deb in Termux, run `post_install.sh`, `flutter doctor`, create/build APK/Linux smoke |
 | Release check | `.github/workflows/release-check.yml` | `ubuntu-latest` | release publish/edit, manual | Verify release asset name, size, and SHA256 digest |
@@ -60,8 +60,9 @@ You run the full build on standard GitHub-hosted runners (free for public reposi
 Therefore:
 
 - **PR CI must stay lightweight** and never touch self-hosted device hardware.
-- **The full build is the `ubuntu-latest` `Build` workflow**, daily scheduled
-  (gated, builds only if anything new) plus manual dispatch.
+- **The full build is the `ubuntu-latest` `Build` workflow**, push-triggered
+  on fresh pins (gated, builds only if anything new) plus daily scheduled
+  fallback plus manual dispatch.
 - **Device smoke is a manual self-hosted gate** run by a maintainer.
 
 ## PR / push CI
@@ -91,9 +92,10 @@ You validate repo-specific contracts with `check_repo.py`, including:
 
 Primary workflow: **Build** (`.github/workflows/build.yml`).
 
-Runs on `ubuntu-latest` on a daily schedule (`0 12 * * *` UTC, gated: the
+Runs on `ubuntu-latest` on push of fresh pins (event-driven, gated: the
 cheap `gate` job skips the multi-hour build when pins are stale or the deb
-for the current pins is already released) and on manual dispatch
+for the current pins is already released), on a daily schedule fallback
+(`0 12 * * *` UTC) and on manual dispatch
 (`workflow_dispatch`), reusing the NDK that ships on GitHub-hosted runners.
 You derive the deb name at build time from the `build.toml` pins at tip, so
 it matches the Flutter version you build. It:
@@ -134,8 +136,8 @@ then run the same patched pipeline (see above) before uploading:
 
 ## Release policy
 
-Merging to `main` leaves publishing to the scheduled `Build` run. The daily scheduled `Build`
-run (12:00 UTC, after the 09:00 UTC pin refresh) builds only when the pins
+Merging to `main` leaves publishing to the push-triggered `Build` run. The `Build`
+run (push of fresh 6h pins, plus 12:00 UTC fallback) builds only when the pins
 equal upstream HEAD and the deb for those pins is not yet released, then
 publishes the resulting `.deb` as a stable release under a versioned tag
 (`v<upstream>.<YYYYMMDD>.<shorthash>`, e.g. `v3.49.0~0.1.pre.20260929.fab9915`) while the deb
@@ -161,7 +163,8 @@ place.
 The release flow:
 
 1. Merge only after PR CI passes.
-2. **Build**: use the daily gated schedule when anything is new, or dispatch
+2. **Build**: use the push-triggered gated run when anything is new (daily
+   fallback covers missed pushes), or dispatch
    it through `workflow_dispatch` on the chosen commit/tag.
 3. Run device smoke against the produced or published `.deb`.
 4. Let **Release check** verify the release asset metadata after publish/edit.
@@ -238,14 +241,15 @@ You can run this workflow on GitHub-hosted runners: it only reads public release
 
 ## Security model
 
-- Fork PRs only get `ci.yml` on GitHub-hosted runners; `Build` runs on its
-  daily schedule plus `workflow_dispatch` (never on PRs); `Release check`
+- Fork PRs only get `ci.yml` on GitHub-hosted runners; `Build` runs on
+  push of fresh pins plus its daily fallback schedule plus
+  `workflow_dispatch` (never on PRs); `Release check`
   runs on release publish/edit plus manual dispatch.
 - Self-hosted `Build deb (self-hosted)`/`Device smoke` workflows are
   `workflow_dispatch` only.
 - A maintainer triggers device smoke by hand; untrusted PR code stays out unless you dispatch it.
 - Release publishing requires `contents: write`: the GitHub-hosted `Build`
-  workflow publishes on gated schedule + manual dispatch, behind a
+  workflow publishes on gated push + schedule + manual dispatch, behind a
   release-asset immutability guard (`should_publish` is false when the deb
   exists on the tag, so reruns leave the asset in place) and a `gate`
   job (with stale pins or already-released debs it skips the build; you push
