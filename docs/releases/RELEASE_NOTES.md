@@ -8,7 +8,7 @@ This package brings the Termux Flutter SDK to Flutter main. You get post-v3.44.2
 
 | Item | Value |
 |------|-------|
-| Package | `flutter_3.49.0~0.1.pre+main.20260930.63768f5-1_aarch64.deb` |
+| Package | `flutter_3.49.0~0.2.pre+main.20261001.3a1c990-1_aarch64.deb` |
 | Size | `TBD (refresh on first main build)` |
 | SHA256 | `TBD (refresh on first main build)` |
 | Flutter | main |
@@ -23,8 +23,8 @@ pkg update -y
 pkg install -y x11-repo wget openjdk-21 7zip
 # NOTE (tracking-main): no hosted main-channel release exists yet. Build the
 # deb yourself (see BUILD_GUIDE.md) and adb push it instead of wget.
-wget https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/v3.49.0-0.1.pre.20260930.63768f5/flutter_3.49.0~0.1.pre+main.20260930.63768f5-1_aarch64.deb
-dpkg -i flutter_3.49.0~0.1.pre+main.20260930.63768f5-1_aarch64.deb
+wget https://github.com/GeneralKaos666/prerelease-flutter-for-termux/releases/download/v3.49.0-0.2.pre.20261001.3a1c990/flutter_3.49.0~0.2.pre+main.20261001.3a1c990-1_aarch64.deb
+dpkg -i flutter_3.49.0~0.2.pre+main.20261001.3a1c990-1_aarch64.deb
 apt --fix-broken install -y
 bash $PREFIX/share/flutter/post_install.sh
 source $PREFIX/etc/profile.d/flutter.sh

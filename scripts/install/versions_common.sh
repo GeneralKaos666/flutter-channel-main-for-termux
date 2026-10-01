@@ -10,10 +10,10 @@ export FLUTTER_VERSION="main"
 # (matches [flutter] framework_version in build.toml). Translated to Debian
 # tilde form so main snapshots sort above the last stable but below the next
 # final (3.47.6~0.0.pre+main.<snap>-1 > 3.47.5-1, < 3.47.6-1).
-export FLUTTER_FRAMEWORK_VERSION="3.49.0-0.1.pre"
+export FLUTTER_FRAMEWORK_VERSION="3.49.0-0.2.pre"
 export FLUTTER_PKG_REL="${FLUTTER_PKG_REL:-1}"
-export FLUTTER_SNAPSHOT="20260930.63768f5"
-export RELEASE_TAG="v3.49.0-0.1.pre.20260930.63768f5"
+export FLUTTER_SNAPSHOT="20261001.3a1c990"
+export RELEASE_TAG="v3.49.0-0.2.pre.20261001.3a1c990"
 # No hosted main-channel release exists yet: refresh after the first main
 # build or pass FLUTTER_DEB_SHA256. Installers fail closed until then.
 export EXPECTED_SHA256="TBD-refresh-after-first-main-build"
