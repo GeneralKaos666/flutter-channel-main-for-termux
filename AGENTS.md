@@ -79,10 +79,10 @@ git diff --check
 
 `ci.yml` runs on PRs, pushes to `main`, and manual dispatch (compile + pytest + shellcheck + actionlint + build.toml schema + version-drift + repo-contract + whitespace). `validate.yml` is path-filtered (patches/build.py/build.toml/test_build.py/utils.py/stubs/requirements) and checks the `pytest` command contract plus that `engine.patch` applies to the configured tag via a shallow clone. Actual builds:
 
-- `build.yml`: GitHub-hosted full `.deb` build on push of fresh pins (event-driven) plus daily gated schedule plus manual dispatch (uses the NDK that ships on hosted runners via `ANDROID_NDK` env); publishes a stable per-deb release with the deb. This is the primary build path.
+- `build.yml`: GitHub-hosted full `.deb` build via `workflow_run` after the daily refresh (plus push of hand-edited build inputs, daily gated schedule, manual dispatch; uses the NDK that ships on hosted runners via `ANDROID_NDK` env); publishes a stable per-deb release with the deb. This is the primary build path.
 - `build-deb.yml`: self-hosted fallback full `.deb` build + artifact/evidence collection (feeds `device-smoke.yml`) for maintainers without hosted-runner time budget.
 - `device-smoke.yml`: manual Windows+ADB: verifies candidate deb SHA256/commit binding, runs Termux smoke, optionally promotes the release.
-- `main-refresh.yml`: every 6h: probes upstream Flutter main HEAD, refreshes `build.toml` pins + snapshot stamp, pushes (push triggers a gated `build.yml` run).
+- `main-refresh.yml`: once daily (11:00 UTC): probes upstream Flutter main HEAD, refreshes `build.toml` pins + snapshot stamp, pushes (a `workflow_run` trigger starts a gated `build.yml` run; 12:00 UTC schedule is fallback).
 - `release-check.yml`: on PRs and `release` events: verifies release asset metadata via `scripts/ci/verify_release_asset.py`.
 
 ## Gotchas

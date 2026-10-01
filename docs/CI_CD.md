@@ -92,9 +92,11 @@ You validate repo-specific contracts with `check_repo.py`, including:
 
 Primary workflow: **Build** (`.github/workflows/build.yml`).
 
-Runs on `ubuntu-latest` on push of fresh pins (event-driven, gated: the
+Runs on `ubuntu-latest` via `workflow_run` right after the daily refresh
+(11:00 UTC, event-driven, gated: the
 cheap `gate` job skips the multi-hour build when pins are stale or the deb
-for the current pins is already released), on a daily schedule fallback
+for the current pins is already released), on push of hand-edited build
+inputs, on a daily schedule fallback
 (`0 12 * * *` UTC) and on manual dispatch
 (`workflow_dispatch`), reusing the NDK that ships on GitHub-hosted runners.
 You derive the deb name at build time from the `build.toml` pins at tip, so
@@ -136,8 +138,8 @@ then run the same patched pipeline (see above) before uploading:
 
 ## Release policy
 
-Merging to `main` leaves publishing to the push-triggered `Build` run. The `Build`
-run (push of fresh 6h pins, plus 12:00 UTC fallback) builds only when the pins
+Merging to `main` leaves publishing to the refresh-triggered `Build` run. The `Build`
+run (daily 11:00 UTC refresh via `workflow_run`, plus 12:00 UTC fallback) builds only when the pins
 equal upstream HEAD and the deb for those pins is not yet released, then
 publishes the resulting `.deb` as a stable release under a versioned tag
 (`v<upstream>.<YYYYMMDD>.<shorthash>`, e.g. `v3.49.0-0.1.pre.20260929.fab9915`) while the deb
@@ -163,8 +165,8 @@ place.
 The release flow:
 
 1. Merge only after PR CI passes.
-2. **Build**: use the push-triggered gated run when anything is new (daily
-   fallback covers missed pushes), or dispatch
+2. **Build**: use the refresh-triggered gated run when anything is new (daily
+   fallback covers misses), or dispatch
    it through `workflow_dispatch` on the chosen commit/tag.
 3. Run device smoke against the produced or published `.deb`.
 4. Let **Release check** verify the release asset metadata after publish/edit.

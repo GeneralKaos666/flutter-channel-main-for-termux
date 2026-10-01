@@ -1,8 +1,8 @@
 name: main-refresh
 
-# Tracks Flutter main: probes upstream HEAD every 6h, refreshes the
-# build.toml pins + snapshot stamp when main moves, and pushes so the
-# push-triggered build.yml run (gated) packages the latest engine
+# Tracks Flutter main: probes upstream HEAD once daily (11:00 UTC), refreshes
+# the build.toml pins + snapshot stamp when main moves, and pushes so the
+# workflow_run-triggered build.yml run (gated) packages the latest engine
 # (12:00 UTC scheduled run kept as fallback).
 # Refresh only — it never builds and never pushes tags (see build.yml).
 # Patch conflicts fail closed here (no pin push) and again in build.yml
@@ -12,7 +12,7 @@ name: main-refresh
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 11 * * *'
   workflow_dispatch:
 
 permissions:

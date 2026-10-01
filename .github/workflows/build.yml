@@ -20,14 +20,19 @@ on:
       - 'utils.py'
       - 'scripts/ci/version_lib.py'
   schedule:
-    # Autobuild fallback (if anything new). Refresh runs every 6h and
-    # pushes of fresh pins trigger this workflow immediately via push;
-    # the 12:00 UTC schedule covers missed push events. The gate job
+    # Autobuild fallback (if anything new). Refresh runs once daily
+    # (11:00 UTC) and triggers this workflow immediately via workflow_run
+    # on completion;
+    # the 12:00 UTC schedule covers missed events. The gate job
     # skips the multi-hour build when pins are stale (refresh
     # conflict/failed) or the deb for the current pins is already
     # released — so no new tag is ever pushed until conflicts are
     # resolved and the build succeeds.
     - cron: '0 12 * * *'
+  workflow_run:
+    workflows: ['main-refresh']
+    types: [completed]
+    branches: [main]
 
 concurrency:
   group: build-hosted
