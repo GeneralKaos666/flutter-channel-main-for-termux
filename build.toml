@@ -7,10 +7,10 @@ tag = 'main'
 framework_version = '3.49.0-0.2.pre'
 repo = 'https://github.com/flutter/flutter'
 path = './flutter'
-dart_version = '3.14.0 (build 3.14.0-271.0.dev)'
-framework_revision = '3a1c990cce5d24a249c26d19ab8f6f9fa584ed83'
-framework_commit_date = '2026-10-01 16:18:12 +0000'
-devtools_version = '2.61.0-dev.0'
+dart_version = '3.14.0 (build 3.14.0-294.0.dev)'
+framework_revision = 'd03768eef05516a030f4eb12457b0d297111d526'
+framework_commit_date = '2026-10-02 03:10:12 +0000'
+devtools_version = '2.61.0'
 
 [ndk]
 api = 26 # >=26
